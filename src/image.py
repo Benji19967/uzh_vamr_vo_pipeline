@@ -35,8 +35,8 @@ class Image:
         return self._dataset
 
     @property
-    def filepath(self) -> str:
-        return str(self._filepath)
+    def filepath(self) -> Path:
+        return self._filepath
 
     def __str__(self) -> str:
         return f"{self.dataset}/{self.filepath}"
