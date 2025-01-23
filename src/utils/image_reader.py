@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from functools import lru_cache
 from pathlib import Path
 
-from src.image import Dataset, Image
+from src.image import Dataset
+from src.image import DatasetImage as Image
 from src.utils import utils
 
 
