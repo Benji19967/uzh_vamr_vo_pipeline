@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 
 from src.features import Descriptors, HarrisScores, Keypoints
@@ -48,14 +50,17 @@ def get_keypoint_correspondences(
     I_0_matched_keypoints = np.zeros((2, len(I_1_indices)))
     I_1_matched_keypoints = np.zeros((2, len(I_1_indices)))
 
-    # Switch pixel coordinates from (y, x) to (x, y)
-    I_0_matched_keypoints[0:] = I_0_keypoints[1, I_0_indices]
-    I_0_matched_keypoints[1:] = I_0_keypoints[0, I_0_indices]
-    I_1_matched_keypoints[0:] = I_1_keypoints[1, I_1_indices]
-    I_1_matched_keypoints[1:] = I_1_keypoints[0, I_1_indices]
+    I_0_matched_keypoints[0:] = I_0_keypoints[0, I_0_indices]
+    I_0_matched_keypoints[1:] = I_0_keypoints[1, I_0_indices]
+    I_1_matched_keypoints[0:] = I_1_keypoints[0, I_1_indices]
+    I_1_matched_keypoints[1:] = I_1_keypoints[1, I_1_indices]
 
     kps[0].plot(I_0_matched_keypoints)
     kps[1].plot(I_1_matched_keypoints)
+
+    # Switch pixel coordinates from (y, x) to (x, y)
+    I_0_matched_keypoints[[0, 1], :] = I_0_matched_keypoints[[1, 0], :]
+    I_1_matched_keypoints[[0, 1], :] = I_1_matched_keypoints[[1, 0], :]
 
     return I_0_matched_keypoints, I_1_matched_keypoints
 
@@ -102,7 +107,7 @@ def initialize(
     M2 = K @ np.c_[R_C2_W, T_C2_W]
 
     points_3d_homogenous = linear_triangulation(
-        p1=keypoints_1_homogeneous, p2=keypoints_2_homogeneous, M1=M1, M2=M2
+        p1_P_hom=keypoints_1_homogeneous, p2_P_hom=keypoints_2_homogeneous, M1=M1, M2=M2
     )
     points_3d = points_3d_homogenous[:3, :]
 

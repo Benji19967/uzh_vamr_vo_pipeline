@@ -166,7 +166,7 @@ class Keypoints:
             # find max value in 2 array (i, j)
             kp = np.unravel_index(temp_scores.argmax(), temp_scores.shape)
 
-            keypoints[:, i] = np.array(kp) - r  # TODO: why `- r`? Because of padding!
+            keypoints[:, i] = np.array(kp) - r  # why `- r`? Because of padding!
 
             # nonmaximum-suppression
             temp_scores[
