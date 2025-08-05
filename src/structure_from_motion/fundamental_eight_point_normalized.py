@@ -1,5 +1,5 @@
-from fundamental_eight_point import fundamentalEightPoint
-from normalise_2D_pts import normalise2DPts
+from structure_from_motion.fundamental_eight_point import fundamentalEightPoint
+from structure_from_motion.normalise_2D_pts import normalise2DPts
 
 
 def fundamentalEightPointNormalized(p1_P_hom, p2_P_hom):

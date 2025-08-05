@@ -1,4 +1,6 @@
-from fundamental_eight_point_normalized import fundamentalEightPointNormalized
+from structure_from_motion.fundamental_eight_point_normalized import (
+    fundamentalEightPointNormalized,
+)
 
 
 def estimateEssentialMatrix(p1_P_hom, p2_P_hom, K1, K2):

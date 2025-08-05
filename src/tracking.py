@@ -1,10 +1,12 @@
 from typing import Sequence
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 
 import plot
 from image import Image
+from structure_from_motion import sfm
 
 # TODO: add a note about notation / documentation regarding (x,y) vs (y,x)
 
@@ -37,13 +39,14 @@ def from_cv2(p_P: np.ndarray) -> np.ndarray:
     return p_P.T.reshape(2, -1)
 
 
-def run_klt(images: Sequence[Image], p_P_keypoints_initial: np.ndarray):
+def run_klt(images: Sequence[Image], p_P_keypoints_initial: np.ndarray, K: np.ndarray):
     """
     Run KLT on the images
 
     Args:
         - images list[np.ndarray]
         - p_P_keypoints_initial np.ndarray(2,N) | (x,y)
+        - K np.ndarray(3, 3): camera matrix
     """
     # Parameters for lucas kanade optical flow
     lk_params = dict(
@@ -69,3 +72,7 @@ def run_klt(images: Sequence[Image], p_P_keypoints_initial: np.ndarray):
         )
 
         p0_P_keypoints_cv2 = p1_P_keypoints_cv2.reshape(-1, 1, 2)
+
+        p_W, camera_position_W, camera_direction_W = sfm.run_sfm(
+            p1_P=from_cv2(p0_P_keypoints_cv2), p2_P=from_cv2(p1_P_keypoints_cv2), K=K
+        )

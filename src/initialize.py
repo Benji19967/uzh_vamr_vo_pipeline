@@ -1,11 +1,10 @@
+import time
+
 import numpy as np
 
-from src.features import Descriptors, HarrisScores, Keypoints
-from src.image import Image
-from src.triangulate.decompose_essential_matrix import decomposeEssentialMatrix
-from src.triangulate.disambiguate_relative_pose import disambiguateRelativePose
-from src.triangulate.estimate_essential_matrix import estimateEssentialMatrix
-from src.triangulate.triangulate import linear_triangulation
+from features import Descriptors, HarrisScores, Keypoints
+from image import Image
+from structure_from_motion import sfm
 
 
 def get_keypoint_correspondences(
@@ -82,32 +81,8 @@ def initialize(
     """
     p1_P_keypoints, p2_P_keypoints = get_keypoint_correspondences(I_0=I_0, I_1=I_1)
 
-    # Triangulate
-    num_keypoints = p1_P_keypoints.shape[1]
-    p1_P_hom_keypoints = np.r_[p1_P_keypoints, np.ones((1, num_keypoints))]
-    p2_P_hom_keypoints = np.r_[p2_P_keypoints, np.ones((1, num_keypoints))]
-
-    # Estimate the essential matrix E using the 8-point algorithm
-    E = estimateEssentialMatrix(
-        p1_P_hom=p1_P_hom_keypoints, p2_P_hom=p2_P_hom_keypoints, K1=K, K2=K
+    p_W, camera_position_W, camera_direction_W = sfm.run_sfm(
+        p1_P=p1_P_keypoints, p2_P=p2_P_keypoints, K=K
     )
-
-    # Extract the relative camera positions (R,T) from the essential matrix
-    # Obtain extrinsic parameters (R,t) from E
-    Rots, u3 = decomposeEssentialMatrix(E)
-
-    # Disambiguate among the four possible configurations
-    R_C2_W, T_C2_W = disambiguateRelativePose(
-        Rots, u3, p1_P_hom_keypoints, p2_P_hom_keypoints, K, K
-    )
-
-    # Triangulate a point cloud using the final transformation (R,T)
-    M1 = K @ np.eye(3, 4)
-    M2 = K @ np.c_[R_C2_W, T_C2_W]
-
-    p_W_hom = linear_triangulation(
-        p1_P_hom=p1_P_hom_keypoints, p2_P_hom=p2_P_hom_keypoints, M1=M1, M2=M2
-    )
-    p_W = p_W_hom[:3, :]
 
     return p1_P_keypoints, p2_P_keypoints, p_W
