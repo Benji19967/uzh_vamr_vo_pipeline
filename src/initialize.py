@@ -77,38 +77,39 @@ def initialize(
     Returns:
         tuple[np.ndarray, np.ndarray, np.ndarray]:
             (
-                keypoints of image 1 in pixel coordinates (x, y),
-                keypoints of image 2 in pixel coordinates (x, y),
-                landmarks P_W in 3D coordinates (x, y, x)
+                (2xN) keypoints of image 1 in pixel coordinates (x, y),
+                (2xN) keypoints of image 2 in pixel coordinates (x, y),
+                (3xN) landmarks P_W in 3D coordinates (x, y, x)
             )
     """
-    keypoints_1, keypoints_2 = get_keypoint_correspondences(I_0=I_0, I_1=I_1)
+    p1_P_keypoints, p2_P_keypoints = get_keypoint_correspondences(I_0=I_0, I_1=I_1)
 
     # Triangulate
-    num_keypoints = keypoints_1.shape[1]
-    keypoints_1_homogeneous = np.r_[keypoints_1, np.ones((1, num_keypoints))]
-    keypoints_2_homogeneous = np.r_[keypoints_2, np.ones((1, num_keypoints))]
-
-    p1 = keypoints_1_homogeneous
-    p2 = keypoints_2_homogeneous
+    num_keypoints = p1_P_keypoints.shape[1]
+    p1_P_hom_keypoints = np.r_[p1_P_keypoints, np.ones((1, num_keypoints))]
+    p2_P_hom_keypoints = np.r_[p2_P_keypoints, np.ones((1, num_keypoints))]
 
     # Estimate the essential matrix E using the 8-point algorithm
-    E = estimateEssentialMatrix(p1, p2, K, K)
+    E = estimateEssentialMatrix(
+        p1_P_hom=p1_P_hom_keypoints, p2_P_hom=p2_P_hom_keypoints, K1=K, K2=K
+    )
 
     # Extract the relative camera positions (R,T) from the essential matrix
     # Obtain extrinsic parameters (R,t) from E
     Rots, u3 = decomposeEssentialMatrix(E)
 
     # Disambiguate among the four possible configurations
-    R_C2_W, T_C2_W = disambiguateRelativePose(Rots, u3, p1, p2, K, K)
+    R_C2_W, T_C2_W = disambiguateRelativePose(
+        Rots, u3, p1_P_hom_keypoints, p2_P_hom_keypoints, K, K
+    )
 
     # Triangulate a point cloud using the final transformation (R,T)
     M1 = K @ np.eye(3, 4)
     M2 = K @ np.c_[R_C2_W, T_C2_W]
 
-    points_3d_homogenous = linear_triangulation(
-        p1_P_hom=keypoints_1_homogeneous, p2_P_hom=keypoints_2_homogeneous, M1=M1, M2=M2
+    p_W_hom = linear_triangulation(
+        p1_P_hom=p1_P_hom_keypoints, p2_P_hom=p2_P_hom_keypoints, M1=M1, M2=M2
     )
-    points_3d = points_3d_homogenous[:3, :]
+    p_W = p_W_hom[:3, :]
 
-    return keypoints_1, keypoints_2, points_3d
+    return p1_P_keypoints, p2_P_keypoints, p_W

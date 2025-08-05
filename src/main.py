@@ -36,10 +36,10 @@ def init() -> None:
         ]
     )
 
-    p1, p2, P = initialize(I_0=I_0, I_1=I_1, K=K_Parking)
-    print(p1)
-    print(p2)
-    print(P)
+    p1_P_keypoints, p2_P_keypoints, p_W = initialize(I_0=I_0, I_1=I_1, K=K_Parking)
+    print(p1_P_keypoints)
+    print(p2_P_keypoints)
+    print(p_W)
 
 
 def main() -> None:
