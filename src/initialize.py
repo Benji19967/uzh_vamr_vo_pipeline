@@ -29,18 +29,18 @@ def get_keypoint_correspondences(
         kp = Keypoints(image=image, scores=hs.scores)
         keypoints.append(kp.keypoints)
         kps.append(kp)
-        kp.plot()
+        # kp.plot()
         # print(kp.keypoints)
         desc = Descriptors(image=image, keypoints=kp.keypoints)
-        desc.plot()
+        # desc.plot()
         descriptors.append(desc.descriptors)
 
     matches = Descriptors.match(
         query_descriptors=descriptors[1], db_descriptors=descriptors[0]
     )
-    Descriptors.plot_matches(
-        matches=matches, query_keypoints=keypoints[1], database_keypoints=keypoints[0]
-    )
+    # Descriptors.plot_matches(
+    #     matches=matches, query_keypoints=keypoints[1], database_keypoints=keypoints[0]
+    # )
 
     I_0_keypoints = keypoints[0]
     I_1_keypoints = keypoints[1]
@@ -55,8 +55,8 @@ def get_keypoint_correspondences(
     I_1_matched_keypoints[0:] = I_1_keypoints[0, I_1_indices]
     I_1_matched_keypoints[1:] = I_1_keypoints[1, I_1_indices]
 
-    kps[0].plot(I_0_matched_keypoints)
-    kps[1].plot(I_1_matched_keypoints)
+    # kps[0].plot(I_0_matched_keypoints)
+    # kps[1].plot(I_1_matched_keypoints)
 
     # Switch pixel coordinates from (y, x) to (x, y)
     I_0_matched_keypoints[[0, 1], :] = I_0_matched_keypoints[[1, 0], :]

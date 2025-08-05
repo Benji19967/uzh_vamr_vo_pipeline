@@ -122,7 +122,7 @@ class Keypoints:
     NUM_KEYPOINTS = 200
     NONMAXIMUM_SUPRESSION_RADIUS = 8
 
-    def __init__(self, image: Image, scores: np.ndarray) -> None:
+    def __init__(self, image: Image, scores: np.ndarray | None = None) -> None:
         self._image = image
         self._scores = scores
         self._keypoints: np.ndarray | None = None
@@ -137,20 +137,25 @@ class Keypoints:
             self._keypoints = self.select()
         return self._keypoints
 
+    @property
+    def scores(self) -> np.ndarray:
+        if self._scores is None:
+            self._scores = HarrisScores(image=self._image).scores
+        return self._scores
+
     def select(
         self,
         num_keypoints: int = NUM_KEYPOINTS,
         nonmax_suppression_radius: int = NONMAXIMUM_SUPRESSION_RADIUS,
     ) -> np.ndarray:
-        """_summary_
-
+        """
         Args:
             scores np.ndarray: corner measure for each pixel
             num_keypoints (int): num keypoints to select
             nonmax_suppression_radius (int): radius in which to only keep one keypoint
 
         Returns:
-            np.ndarray: (2, num_keypoints)
+            np.ndarray: (2xN) and p=(y, x)
         """
         r = nonmax_suppression_radius
 
@@ -159,7 +164,7 @@ class Keypoints:
 
         # scores with padding
         temp_scores = np.pad(
-            self._scores, [(r, r), (r, r)], mode="constant", constant_values=0
+            self.scores, [(r, r), (r, r)], mode="constant", constant_values=0
         )
 
         for i in range(num_keypoints):

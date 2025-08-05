@@ -1,5 +1,7 @@
 import numpy as np
 
+import tracking
+from src.features import Keypoints
 from src.initialize import initialize
 from src.utils import utils
 from src.utils.image_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
@@ -37,16 +39,20 @@ def init() -> None:
     )
 
     p1_P_keypoints, p2_P_keypoints, p_W = initialize(I_0=I_0, I_1=I_1, K=K_Parking)
-    print(p1_P_keypoints)
-    print(p2_P_keypoints)
-    print(p_W)
+    # print(p1_P_keypoints)
+    # print(p2_P_keypoints)
+    # print(p_W)
 
 
 def main() -> None:
-    pass
+    images = ParkingDataReader.read_images(end_id=30)
+    kp0 = Keypoints(image=images[0])
+    p_P_keypoints = kp0.select(num_keypoints=200)
+    p_P_keypoints[[0, 1]] = p_P_keypoints[[1, 0]]  # keypoints are (y, x)
+    tracking.run_klt(images=images, p_P_keypoints_initial=p_P_keypoints)
 
 
 if __name__ == "__main__":
     # demo_image_readers()
-    init()
+    # init()
     main()
