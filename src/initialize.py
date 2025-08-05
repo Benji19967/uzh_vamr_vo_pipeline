@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 
 from src.features import Descriptors, HarrisScores, Keypoints

@@ -1,6 +1,5 @@
 import numpy as np
-
-from src.triangulate.triangulate import linear_triangulation
+from triangulate import linear_triangulation
 
 
 def disambiguateRelativePose(Rots, u3, p1_P_hom, p2_P_hom, K1, K2):

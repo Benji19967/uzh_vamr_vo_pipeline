@@ -42,8 +42,8 @@ def run_klt(images: Sequence[Image], p_P_keypoints_initial: np.ndarray):
     Run KLT on the images
 
     Args:
-        images (list[np.ndarray])
-        p_P_keypoints_initial (2xN) | (x,y)
+        - images list[np.ndarray]
+        - p_P_keypoints_initial np.ndarray(2,N) | (x,y)
     """
     # Parameters for lucas kanade optical flow
     lk_params = dict(
