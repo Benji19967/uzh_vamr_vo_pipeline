@@ -6,6 +6,7 @@ import numpy as np
 from features.features import Descriptors, HarrisScores, Keypoints
 from image import Image
 from localization import ransacLocalization
+from src.features.features_cv2 import good_features_to_track
 from structure_from_motion import sfm
 
 NUM_KEYPOINTS = 1000
@@ -26,14 +27,19 @@ def get_keypoint_correspondences(
     descriptors = []
     kps = []
     for image in [I_0, I_1]:
-        hs = HarrisScores(image=image)
-        kp = Keypoints(image=image, scores=hs.scores)
-        kp.select(num_keypoints=NUM_KEYPOINTS)
-        keypoints.append(kp.keypoints)
-        kps.append(kp)
-        # kp.plot()
-        # print(kp.keypoints)
-        desc = Descriptors(image=image, keypoints=kp.keypoints)
+        # hs = HarrisScores(image=image)
+        # kp = Keypoints(image=image, scores=hs.scores)
+        # kp.select(num_keypoints=NUM_KEYPOINTS)
+        # keypoints.append(kp.keypoints)
+        # kps.append(kp)
+        # # kp.plot()
+        # # print(kp.keypoints)
+
+        p_P_corners = good_features_to_track(img=image.img, max_features=NUM_KEYPOINTS)
+        # print(p_P_corners.shape)
+        keypoints.append(p_P_corners)
+
+        desc = Descriptors(image=image, keypoints=p_P_corners)
         # desc.plot()
         descriptors.append(desc.descriptors)
 
@@ -60,10 +66,6 @@ def get_keypoint_correspondences(
     # kps[0].plot(I_0_matched_keypoints)
     # kps[1].plot(I_1_matched_keypoints)
 
-    # Switch pixel coordinates from (y, x) to (x, y)
-    I_0_matched_keypoints[[0, 1], :] = I_0_matched_keypoints[[1, 0], :]
-    I_1_matched_keypoints[[0, 1], :] = I_1_matched_keypoints[[1, 0], :]
-
     return I_0_matched_keypoints, I_1_matched_keypoints
 
 
@@ -85,7 +87,7 @@ def initialize(
             )
     """
     p1_P_keypoints, p2_P_keypoints = get_keypoint_correspondences(I_0=I_0, I_1=I_1)
-    print(p1_P_keypoints.shape)
+    # print(p1_P_keypoints.shape)
     # sys.exit()
 
     p_W, _, _ = sfm.run_sfm(p1_P=p1_P_keypoints, p2_P=p2_P_keypoints, K=K)
@@ -95,6 +97,7 @@ def initialize(
         K=K,
     )
     # print(best_inlier_mask)
+    # sys.exit()
 
     return (
         p1_P_keypoints[:, best_inlier_mask],

@@ -1,3 +1,4 @@
+import sys
 from typing import Sequence
 
 import cv2
@@ -33,8 +34,8 @@ def run_klt(
         maxLevel=2,
         criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),
     )
-    print(p_P_keypoints_initial.shape)
-    print(p_W_landmarks_initial.shape)
+    print(p_P_keypoints_initial)
+    # print(p_W_landmarks_initial)
 
     p0_P_keypoints_cv2 = to_cv2(p_P_keypoints_initial)
     for i_0, i_1 in zip(images, images[1:]):

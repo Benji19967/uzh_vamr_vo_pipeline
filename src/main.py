@@ -39,7 +39,7 @@ def demo_image_readers() -> None:
 
 def main() -> None:
     I_0 = ParkingDataReader.read_image(id=0)
-    I_1 = ParkingDataReader.read_image(id=1)
+    I_1 = ParkingDataReader.read_image(id=2)
 
     p1_P_keypoints, p2_P_keypoints, p_W_landmarks = initialize(
         I_0=I_0, I_1=I_1, K=K_Parking

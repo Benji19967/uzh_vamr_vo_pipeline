@@ -12,7 +12,13 @@ def plot_tracking(
     figsize_pixels_x: int | None = None,
     figsize_pixels_y: int | None = None,
 ):
-    print(I0_keypoints)
+    """
+    Args:
+        I0_keypoints np.ndarray(2,N): p=(x,y)
+        I1_keypoints np.ndarray(2,N): p=(x,y)
+        figsize_pixels_x: x size of figure in pixels
+        figsize_pixels_y: y size of figure in pixels
+    """
     x_from = I0_keypoints[0]
     x_to = I1_keypoints[0]
     y_from = I0_keypoints[1]
@@ -85,7 +91,7 @@ def drawCamera(
         [position[0], position[0] + length_scale * direction[0, 0]],
         [position[1], position[1] + length_scale * direction[1, 0]],
         [position[2], position[2] + length_scale * direction[2, 0]],
-        **arrow_prop_dict
+        **arrow_prop_dict,
     )
     ax.add_artist(a)
     arrow_prop_dict = dict(mutation_scale=head_size, arrowstyle="-|>", color="g")
@@ -93,7 +99,7 @@ def drawCamera(
         [position[0], position[0] + length_scale * direction[0, 1]],
         [position[1], position[1] + length_scale * direction[1, 1]],
         [position[2], position[2] + length_scale * direction[2, 1]],
-        **arrow_prop_dict
+        **arrow_prop_dict,
     )
     ax.add_artist(a)
     arrow_prop_dict = dict(mutation_scale=head_size, arrowstyle="-|>", color="b")
@@ -101,7 +107,7 @@ def drawCamera(
         [position[0], position[0] + length_scale * direction[0, 2]],
         [position[1], position[1] + length_scale * direction[1, 2]],
         [position[2], position[2] + length_scale * direction[2, 2]],
-        **arrow_prop_dict
+        **arrow_prop_dict,
     )
     ax.add_artist(a)
 
