@@ -36,13 +36,16 @@ def demo_image_readers() -> None:
 
 
 def init() -> None:
+    # TODO: should be far enough apart but not too far...
     I_0 = ParkingDataReader.read_image(id=0)
-    I_1 = ParkingDataReader.read_image(id=1)
+    I_1 = ParkingDataReader.read_image(id=4)
 
     p1_P_keypoints, p2_P_keypoints, p_W = initialize(I_0=I_0, I_1=I_1, K=K_Parking)
     # print(p1_P_keypoints)
     # print(p2_P_keypoints)
     # print(p_W)
+
+    # TODO: ransacLocalization
 
 
 def main() -> None:

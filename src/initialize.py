@@ -4,6 +4,7 @@ import numpy as np
 
 from features import Descriptors, HarrisScores, Keypoints
 from image import Image
+from localization import ransacLocalization
 from structure_from_motion import sfm
 
 
@@ -80,9 +81,15 @@ def initialize(
             )
     """
     p1_P_keypoints, p2_P_keypoints = get_keypoint_correspondences(I_0=I_0, I_1=I_1)
+    print(p1_P_keypoints)
 
-    p_W, camera_position_W, camera_direction_W = sfm.run_sfm(
-        p1_P=p1_P_keypoints, p2_P=p2_P_keypoints, K=K
+    p_W, _, _ = sfm.run_sfm(p1_P=p1_P_keypoints, p2_P=p2_P_keypoints, K=K)
+    R_C_W, t_C_W, best_inlier_mask, _, _ = ransacLocalization(
+        p_P_keypoints=p1_P_keypoints,
+        p_W_landmarks=p_W,
+        K=K,
     )
+    print(t_C_W)
+    print(best_inlier_mask)
 
-    return p1_P_keypoints, p2_P_keypoints, p_W
+    return p1_P_keypoints[:, best_inlier_mask], p2_P_keypoints[:, best_inlier_mask], p_W

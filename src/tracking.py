@@ -6,6 +6,7 @@ import numpy as np
 
 import plot
 from image import Image
+from localization import ransacLocalization
 from structure_from_motion import sfm
 
 # TODO: add a note about notation / documentation regarding (x,y) vs (y,x)
@@ -66,13 +67,19 @@ def run_klt(images: Sequence[Image], p_P_keypoints_initial: np.ndarray, K: np.nd
         p0_P_keypoints_cv2 = p0_P_keypoints_cv2[st == 1]
         p1_P_keypoints_cv2 = p1_P_keypoints_cv2[st == 1]
 
+        p_W, _, _ = sfm.run_sfm(
+            p1_P=from_cv2(p0_P_keypoints_cv2), p2_P=from_cv2(p1_P_keypoints_cv2), K=K
+        )
+        p0_P_keypoints = from_cv2(p0_P_keypoints_cv2)
+        R_C_W, t_C_W, best_inlier_mask, _, _ = ransacLocalization(
+            p_P_keypoints=p0_P_keypoints,
+            p_W_landmarks=p_W,
+            K=K,
+        )
+
         plot.plot_tracking(
-            I0_keypoints=from_cv2(p0_P_keypoints_cv2),
-            I1_keypoints=from_cv2(p1_P_keypoints_cv2),
+            I0_keypoints=from_cv2(p0_P_keypoints_cv2)[:, best_inlier_mask],
+            I1_keypoints=from_cv2(p1_P_keypoints_cv2)[:, best_inlier_mask],
         )
 
         p0_P_keypoints_cv2 = p1_P_keypoints_cv2.reshape(-1, 1, 2)
-
-        p_W, camera_position_W, camera_direction_W = sfm.run_sfm(
-            p1_P=from_cv2(p0_P_keypoints_cv2), p2_P=from_cv2(p1_P_keypoints_cv2), K=K
-        )
