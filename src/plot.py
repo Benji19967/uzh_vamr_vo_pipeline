@@ -35,11 +35,11 @@ def plot_tracking(
     plt.show()
 
 
-def plot_keypoints(img: np.ndarray, p_P_keypoints: np.ndarray) -> None:
+def plot_keypoints(img: np.ndarray, p_P_keypoints: np.ndarray, fmt: str = "rx") -> None:
     plt.clf()
     plt.close()
     plt.imshow(img, cmap="gray")
-    plt.plot(p_P_keypoints[0, :], p_P_keypoints[1, :], "rx", linewidth=2)
+    plt.plot(p_P_keypoints[0, :], p_P_keypoints[1, :], fmt, linewidth=2)
     plt.axis("off")
     plt.show()
 

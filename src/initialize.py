@@ -25,30 +25,16 @@ def get_keypoint_correspondences(
     """
     keypoints = []
     descriptors = []
-    kps = []
     for image in [I_0, I_1]:
-        # hs = HarrisScores(image=image)
-        # kp = Keypoints(image=image, scores=hs.scores)
-        # kp.select(num_keypoints=NUM_KEYPOINTS)
-        # keypoints.append(kp.keypoints)
-        # kps.append(kp)
-        # # kp.plot()
-        # # print(kp.keypoints)
-
         p_P_corners = good_features_to_track(img=image.img, max_features=NUM_KEYPOINTS)
-        # print(p_P_corners.shape)
         keypoints.append(p_P_corners)
 
         desc = Descriptors(image=image, keypoints=p_P_corners)
-        # desc.plot()
         descriptors.append(desc.descriptors)
 
     matches = Descriptors.match(
         query_descriptors=descriptors[1], db_descriptors=descriptors[0]
     )
-    # Descriptors.plot_matches(
-    #     matches=matches, query_keypoints=keypoints[1], database_keypoints=keypoints[0]
-    # )
 
     I_0_keypoints = keypoints[0]
     I_1_keypoints = keypoints[1]
@@ -62,9 +48,6 @@ def get_keypoint_correspondences(
     I_0_matched_keypoints[1:] = I_0_keypoints[1, I_0_indices]
     I_1_matched_keypoints[0:] = I_1_keypoints[0, I_1_indices]
     I_1_matched_keypoints[1:] = I_1_keypoints[1, I_1_indices]
-
-    # kps[0].plot(I_0_matched_keypoints)
-    # kps[1].plot(I_1_matched_keypoints)
 
     return I_0_matched_keypoints, I_1_matched_keypoints
 
@@ -91,7 +74,7 @@ def initialize(
     # sys.exit()
 
     p_W, _, _ = sfm.run_sfm(p1_P=p1_P_keypoints, p2_P=p2_P_keypoints, K=K)
-    R_C_W, t_C_W, best_inlier_mask, _, _ = ransacLocalization(
+    _, _, best_inlier_mask, _, _ = ransacLocalization(
         p_P_keypoints=p1_P_keypoints,
         p_W_landmarks=p_W,
         K=K,
