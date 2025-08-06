@@ -1,3 +1,5 @@
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
@@ -155,7 +157,7 @@ class Keypoints:
             nonmax_suppression_radius (int): radius in which to only keep one keypoint
 
         Returns:
-            np.ndarray: (2xN) and p=(y, x)
+            np.ndarray: (2xN) and p=(x, y)
         """
         r = nonmax_suppression_radius
 
@@ -171,6 +173,8 @@ class Keypoints:
             # find max value in 2 array (i, j)
             kp = np.unravel_index(temp_scores.argmax(), temp_scores.shape)
 
+            assert kp[0] >= r and kp[1] >= r  # TODO: needs to be fixed!
+
             keypoints[:, i] = np.array(kp) - r  # why `- r`? Because of padding!
 
             # nonmaximum-suppression
@@ -178,8 +182,10 @@ class Keypoints:
                 (kp[0] - r) : (kp[0] + r + 1), (kp[1] - r) : (kp[1] + r + 1)
             ] = 0
 
-        self._keypoints = keypoints
+        # (y,x) to (x,y)
+        keypoints[[0, 1]] = keypoints[[1, 0]]
 
+        self._keypoints = keypoints
         return keypoints
 
     def plot(self, keypoints: np.ndarray | None = None) -> None:
@@ -210,25 +216,40 @@ class Descriptors:
     @property
     def descriptors(self) -> np.ndarray:
         if self._descriptors is None:
-            self._descriptors = self.describe_keypoints()
+            self._descriptors = self.compute_descriptors(
+                img=self.img, p_P_keypoints=self._keypoints
+            )
         return self._descriptors
 
-    def describe_keypoints(
-        self, descriptor_radius: int = DESCRIPTOR_RADIUS
+    def compute_descriptors(
+        self,
+        img: np.ndarray,
+        p_P_keypoints: np.ndarray,
+        descriptor_radius: int = DESCRIPTOR_RADIUS,
     ) -> np.ndarray:
+        """Compute descriptors for keypoints
+
+        Args:
+        - img           np.ndarray
+        - p_P_keypoints np.ndarray(2,N): (x,y) keypoints to compute descriptors for
+
+        Returns:
+        - descriptors   np.ndarray(R,N): R=(2 * r + 1) ** 2
+        """
         r = descriptor_radius
-        N = self._keypoints.shape[1]
+        N = p_P_keypoints.shape[1]
+        print(p_P_keypoints)
 
         # `(2 * r + 1) ** 2` is the number of pixels in a patch/descriptor
         descriptors = np.zeros([(2 * r + 1) ** 2, N])
-        padded = np.pad(self.img, [(r, r), (r, r)], mode="constant", constant_values=0)
+        padded = np.pad(img, [(r, r), (r, r)], mode="constant", constant_values=0)
 
         for i in range(N):
-            kp = self._keypoints[:, i].astype(int) + r  # `+r` to account for padding
+            kp = p_P_keypoints[:, i].astype(int) + r  # `+r` to account for padding
 
             # store the the pixel intensities of the descriptors in a flattened way
             descriptors[:, i] = padded[
-                (kp[0] - r) : (kp[0] + r + 1), (kp[1] - r) : (kp[1] + r + 1)
+                (kp[1] - r) : (kp[1] + r + 1), (kp[0] - r) : (kp[0] + r + 1)
             ].flatten()
 
         return descriptors
@@ -245,22 +266,22 @@ class Descriptors:
         Use each db_descriptor only once.
 
         Args:
-            query_descriptors (np.ndarray): descriptors at time t2
-            db_descriptors (np.ndarray): descriptors at time t1
+            query_descriptors np.ndarray(R, N_Q): descriptors at time t2
+            db_descriptors np.ndarray(R, N_D): descriptors at time t1
             match_lambda (int):
 
         Returns:
-            np.ndarray: (1, len(query_descriptors))
+            np.ndarray: (N_Q,)
         """
-        # shape: (Q, D) -- in this case (200, 200)
+        # shape: (N_Q, N_D)
         # distance from each query descriptor to each database descriptor
         dists = cdist(query_descriptors.T, db_descriptors.T, "euclidean")
 
-        # shape: (200, 1)
+        # shape: (N_Q, 1)
         # for each query_descriptor, which db_descriptor (index) is closest (argmin)
         matches = np.argmin(dists, axis=1)
 
-        # shape: (200, 1)
+        # shape: (N_Q, 1)
         # keep only distances that matched in `matches`
         dists = dists[np.arange(matches.shape[0]), matches]
 

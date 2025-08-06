@@ -8,7 +8,7 @@ from image import Image
 from localization import ransacLocalization
 from structure_from_motion import sfm
 
-NUM_KEYPOINTS = 200
+NUM_KEYPOINTS = 1000
 
 
 def get_keypoint_correspondences(
