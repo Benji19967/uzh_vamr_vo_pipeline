@@ -76,10 +76,17 @@ def run_klt(images: Sequence[Image], p_P_keypoints_initial: np.ndarray, K: np.nd
             p_W_landmarks=p_W,
             K=K,
         )
+        plot.plot_keypoints(img=i_0.img, p_P_keypoints=p0_P_keypoints)
+        if R_C_W is not None:
+            print(-R_C_W @ t_C_W)
 
+        # print(i_0.img.shape)
         plot.plot_tracking(
             I0_keypoints=from_cv2(p0_P_keypoints_cv2)[:, best_inlier_mask],
             I1_keypoints=from_cv2(p1_P_keypoints_cv2)[:, best_inlier_mask],
+            figsize_pixels_x=i_0.img.shape[1],
+            figsize_pixels_y=i_0.img.shape[0],
         )
 
-        p0_P_keypoints_cv2 = p1_P_keypoints_cv2.reshape(-1, 1, 2)
+        # p0_P_keypoints_cv2 = p1_P_keypoints_cv2.reshape(-1, 1, 2)
+        p0_P_keypoints_cv2 = to_cv2(from_cv2(p1_P_keypoints_cv2)[:, best_inlier_mask])

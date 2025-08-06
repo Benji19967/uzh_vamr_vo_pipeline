@@ -3,18 +3,38 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
+DPI = 227  # Mac M1
+
 
 def plot_tracking(
     I0_keypoints: np.ndarray,
     I1_keypoints: np.ndarray,
+    figsize_pixels_x: int | None = None,
+    figsize_pixels_y: int | None = None,
 ):
+    print(I0_keypoints)
     x_from = I0_keypoints[0]
     x_to = I1_keypoints[0]
     y_from = I0_keypoints[1]
     y_to = I1_keypoints[1]
 
+    if figsize_pixels_x and figsize_pixels_y:
+        plt.figure(figsize=(figsize_pixels_x / DPI, figsize_pixels_y / DPI), dpi=DPI)
+        ax = plt.gca()
+        ax.set_xlim([0, figsize_pixels_x])
+        ax.set_ylim([0, figsize_pixels_y])
+    plt.gca().invert_yaxis()  # because p=(x, y) of keypoints are given for origin at top left corner
     for i in range(x_from.shape[0]):
-        plt.plot([x_from[i], x_to[i]], [y_from[i], y_to[i]], "g-", linewidth=3)
+        plt.plot([x_from[i], x_to[i]], [y_from[i], y_to[i]], "g-", linewidth=1)
+    plt.show()
+
+
+def plot_keypoints(img: np.ndarray, p_P_keypoints: np.ndarray) -> None:
+    plt.clf()
+    plt.close()
+    plt.imshow(img, cmap="gray")
+    plt.plot(p_P_keypoints[0, :], p_P_keypoints[1, :], "rx", linewidth=2)
+    plt.axis("off")
     plt.show()
 
 

@@ -89,7 +89,7 @@ def initialize(
         p_W_landmarks=p_W,
         K=K,
     )
-    print(t_C_W)
-    print(best_inlier_mask)
+    print(-R_C_W.T @ t_C_W)
+    # print(best_inlier_mask)
 
     return p1_P_keypoints[:, best_inlier_mask], p2_P_keypoints[:, best_inlier_mask], p_W
