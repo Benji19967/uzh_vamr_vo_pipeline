@@ -1,11 +1,14 @@
+import sys
 import time
 
 import numpy as np
 
-from features import Descriptors, HarrisScores, Keypoints
+from features.features import Descriptors, HarrisScores, Keypoints
 from image import Image
 from localization import ransacLocalization
 from structure_from_motion import sfm
+
+NUM_KEYPOINTS = 200
 
 
 def get_keypoint_correspondences(
@@ -25,6 +28,7 @@ def get_keypoint_correspondences(
     for image in [I_0, I_1]:
         hs = HarrisScores(image=image)
         kp = Keypoints(image=image, scores=hs.scores)
+        kp.select(num_keypoints=NUM_KEYPOINTS)
         keypoints.append(kp.keypoints)
         kps.append(kp)
         # kp.plot()
@@ -77,11 +81,12 @@ def initialize(
             (
                 (2xN) keypoints of image 1 in pixel coordinates (x, y),
                 (2xN) keypoints of image 2 in pixel coordinates (x, y),
-                (3xN) landmarks P_W in 3D coordinates (x, y, x)
+                (3xN) landmarks P_W in 3D coordinates (x, y, z)
             )
     """
     p1_P_keypoints, p2_P_keypoints = get_keypoint_correspondences(I_0=I_0, I_1=I_1)
-    print(p1_P_keypoints)
+    print(p1_P_keypoints.shape)
+    # sys.exit()
 
     p_W, _, _ = sfm.run_sfm(p1_P=p1_P_keypoints, p2_P=p2_P_keypoints, K=K)
     R_C_W, t_C_W, best_inlier_mask, _, _ = ransacLocalization(
@@ -89,7 +94,10 @@ def initialize(
         p_W_landmarks=p_W,
         K=K,
     )
-    print(-R_C_W.T @ t_C_W)
     # print(best_inlier_mask)
 
-    return p1_P_keypoints[:, best_inlier_mask], p2_P_keypoints[:, best_inlier_mask], p_W
+    return (
+        p1_P_keypoints[:, best_inlier_mask],
+        p2_P_keypoints[:, best_inlier_mask],
+        p_W[:, best_inlier_mask],
+    )

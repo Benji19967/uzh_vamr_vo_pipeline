@@ -178,6 +178,8 @@ class Keypoints:
                 (kp[0] - r) : (kp[0] + r + 1), (kp[1] - r) : (kp[1] + r + 1)
             ] = 0
 
+        self._keypoints = keypoints
+
         return keypoints
 
     def plot(self, keypoints: np.ndarray | None = None) -> None:
