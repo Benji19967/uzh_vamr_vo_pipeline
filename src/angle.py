@@ -72,3 +72,5 @@ def plot_angle(x1, x2, K, R1, t1, R2, t2):
     ax.legend()
     plt.tight_layout()
     plt.show()
+
+    return angle_deg

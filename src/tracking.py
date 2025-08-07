@@ -108,11 +108,13 @@ def run_klt(image_0: Image, image_1: Image, p0_P_keypoints: np.ndarray):
         return st.T[0]
 
     if p1_P_keypoints_cv2 is None:
+        print("BAD")
         return (
             np.zeros((2, 0), dtype=np.int32),
             np.zeros((2, 0), dtype=np.int32),
             np.full((0), False),
         )
+    print("GOOD")
     return (
         from_cv2(p0_P_keypoints_cv2),
         from_cv2(p1_P_keypoints_cv2),
@@ -134,6 +136,19 @@ def get_T_C_W_flat(R_C_W, t_C_W):
     r11 r12 r13 r21 r22 r23 r31 r32 r33 tx ty tz
     """
     return np.r_[R_C_W.flatten(), t_C_W]
+
+
+def filter(p_Points: np.ndarray, mask: np.ndarray):
+    """
+    Keep only points of mask
+
+    Args:
+        - p_Points  np.ndarray(2, N)
+        - mask      np.ndarray(N,)
+    """
+    if p_Points.any():
+        return p_Points[:, mask]
+    return p_Points
 
 
 def run_vo(
@@ -163,14 +178,15 @@ def run_vo(
         P0, P1 = P0[:, status_mask], P1[:, status_mask]
         X0 = X0[:, status_mask]
 
-        # if C0:
-        C0, C1, status_mask_candiate_kps = run_klt(
-            image_0=image_0, image_1=image_1, p0_P_keypoints=C0
+        _, C1, status_mask_candiate_kps = run_klt(
+            image_0=image_0, image_1=image_1, p0_P_keypoints=C1
         )
-        C0 = C0[:, status_mask_candiate_kps]
-        C1 = C1[:, status_mask_candiate_kps]
-        # else:
-        #     status_mask_candiate_kps = np.full((0), True)
+        # C0 = filter(C0, status_mask_candiate_kps)
+        C1 = filter(C1, status_mask_candiate_kps)
+        # F0 = filter(F0, status_mask_candiate_kps)
+        F1 = filter(F1, status_mask_candiate_kps)
+        # T0 = filter(T0, status_mask_candiate_kps)
+        T1 = filter(T1, status_mask_candiate_kps)
 
         print(f"P1: {P1.shape}")
         print(f"X0: {X0.shape}")
@@ -208,44 +224,50 @@ def run_vo(
         # Remove keypoints that are already tracked
         C1_new = keep_unique(
             p_P=C1_new,
-            p_P_existing=C1,
+            p_P_existing=C1.astype(np.int16),
         )
         num_new_candidate_keypoints = C1_new.shape[1]
         # endregion --- END: add new candidate keypoints ---
 
-        C0, C1 = C1, np.c_[C1, C1_new]
-        F0, F1 = F1, np.c_[F0[:, status_mask_candiate_kps], C1_new]
-        T0, T1 = (
-            T1,
-            np.c_[
-                T0[:, status_mask_candiate_kps],
-                np.tile(T_C_W_1, (num_new_candidate_keypoints, 1)).T,
-            ],
-        )
-        P0 = P1
-
-        plot.plot_keypoints(img=image_1.img, p_P_keypoints=[P1, C1], fmt=["rx", "gx"])
-
+        print("C0")
+        print(C0.shape)
         print("C1")
         print(C1.shape)
         print("F1")
         print(F1.shape)
         print("T1")
         print(R_C_W_1, t_C_W_1)
-        print(T1[:, 0])
-        print(T1[:9, 0].reshape((3, 3)))
-        print(T1[9:, 0].reshape(3))
+
+        if C1.shape[1] < 200:
+            C1 = np.c_[C1, C1_new]
+            # C0 = C1
+            F0, F1 = F1, np.c_[F1, C1_new]
+            T0, T1 = (
+                T1,
+                np.c_[
+                    T1,
+                    np.tile(T_C_W_1, (num_new_candidate_keypoints, 1)).T,
+                ],
+            )
+
+        P0 = P1
+
+        plot.plot_keypoints(img=image_1.img, p_P_keypoints=[P1, C1], fmt=["rx", "gx"])
 
         if F0.any():
-            plot_angle(
-                x1=F0[:, 30].T,
-                x2=C1[:, 30].T,
-                K=K,
-                R1=T0[:9, 30].reshape((3, 3)),
-                t1=T0[9:, 30].reshape(3),
-                R2=R_C_W_1,
-                t2=t_C_W_1,
-            )
+            point_idx = 0
+            # angle_deg = plot_angle(
+            #     x1=F0[:, point_idx].T,
+            #     x2=C1[:, point_idx].T,
+            #     K=K,
+            #     R1=T0[:9, point_idx].reshape((3, 3)),
+            #     t1=T0[9:, point_idx].reshape(3),
+            #     R2=R_C_W_1,
+            #     t2=t_C_W_1,
+            # )
+            # print(status_mask_candiate_kps)
+            # print(angle_deg)
+            # print(num_new_candidate_keypoints)
 
         # plot.plot_keypoints(
         #     img=i_1.img, p_P_keypoints=p_P_candidate_keypoints_new, fmt="gx"
