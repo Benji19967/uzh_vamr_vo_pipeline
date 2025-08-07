@@ -125,13 +125,13 @@ def run_klt(image_0: Image, image_1: Image, p0_P_keypoints: np.ndarray):
 # TODO: do I need T_W_C rather than T_C_W?
 def get_T_C_W_flat(R_C_W, t_C_W):
     """
-    From
+    From (3, 4):
 
     r11 r12 r13 tx
     r21 r22 r23 ty
     r31 r32 r33 tz
 
-    to
+    to (1, 12):
 
     r11 r12 r13 tx r21 r22 r23 ty r31 r32 r33 tz
     """
@@ -264,6 +264,7 @@ def run_vo(
             )
             print(angles_deg)
             print(mask)
+            # TODO: points where mask True --> triangulate
 
             point_idx = 0
             angle_deg = plot_angle(
