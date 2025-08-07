@@ -64,7 +64,7 @@ def main() -> None:
     # p_P_keypoints = kp0.select(num_keypoints=200)
     # p_P_keypoints[[0, 1]] = p_P_keypoints[[1, 0]]  # keypoints are (y, x)
 
-    tracking.run_klt(
+    tracking.run_vo(
         images=images,
         p_P_keypoints_initial=p1_P_keypoints,
         p_W_landmarks_initial=p_W_landmarks,
