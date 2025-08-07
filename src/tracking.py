@@ -9,7 +9,7 @@ import plot
 from features.features_cv2 import good_features_to_track
 from image import Image
 from localization import ransacLocalization
-from src.angle import plot_angle
+from src.angle import compute_bearing_angles_with_translation, plot_angle
 from structure_from_motion import sfm
 from utils.utils_cv2 import from_cv2, to_cv2
 
@@ -133,9 +133,9 @@ def get_T_C_W_flat(R_C_W, t_C_W):
 
     to
 
-    r11 r12 r13 r21 r22 r23 r31 r32 r33 tx ty tz
+    r11 r12 r13 tx r21 r22 r23 ty r31 r32 r33 tz
     """
-    return np.r_[R_C_W.flatten(), t_C_W]
+    return np.c_[R_C_W, t_C_W].flatten()
 
 
 def filter(p_Points: np.ndarray, mask: np.ndarray):
@@ -255,20 +255,26 @@ def run_vo(
         plot.plot_keypoints(img=image_1.img, p_P_keypoints=[P1, C1], fmt=["rx", "gx"])
 
         if F0.any():
-            point_idx = 0
-            # angle_deg = plot_angle(
-            #     x1=F0[:, point_idx].T,
-            #     x2=C1[:, point_idx].T,
-            #     K=K,
-            #     R1=T0[:9, point_idx].reshape((3, 3)),
-            #     t1=T0[9:, point_idx].reshape(3),
-            #     R2=R_C_W_1,
-            #     t2=t_C_W_1,
-            # )
-            # print(status_mask_candiate_kps)
-            # print(angle_deg)
-            # print(num_new_candidate_keypoints)
+            _, angles_deg, mask = compute_bearing_angles_with_translation(
+                p_P_1=F1,
+                p_P_2=C1,
+                poses_A=T1,
+                T_C_W=T_C_W_1,
+                K=K,
+            )
+            print(angles_deg)
+            print(mask)
 
-        # plot.plot_keypoints(
-        #     img=i_1.img, p_P_keypoints=p_P_candidate_keypoints_new, fmt="gx"
-        # )
+            point_idx = 0
+            angle_deg = plot_angle(
+                x1=F1[:, point_idx].T,
+                x2=C1[:, point_idx].T,
+                K=K,
+                R1=T1[:, point_idx].reshape((3, 4))[:, :3],
+                t1=T1[:, point_idx].reshape((3, 4))[:, 3],
+                R2=R_C_W_1,
+                t2=t_C_W_1,
+            )
+            # print(status_mask_candiate_kps)
+            print(angle_deg)
+            print(num_new_candidate_keypoints)
