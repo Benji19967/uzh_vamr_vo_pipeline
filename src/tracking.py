@@ -9,6 +9,7 @@ import plot
 from features.features_cv2 import good_features_to_track
 from image import Image
 from localization import ransacLocalization
+from src.angle import plot_angle
 from structure_from_motion import sfm
 from utils.utils_cv2 import from_cv2, to_cv2
 
@@ -119,9 +120,20 @@ def run_klt(image_0: Image, image_1: Image, p0_P_keypoints: np.ndarray):
     )
 
 
-def get_T_C_W(R_C_W, t_C_W):
-    # TODO: is this correct?
-    return np.c_[R_C_W, t_C_W]
+# TODO: do I need T_W_C rather than T_C_W?
+def get_T_C_W_flat(R_C_W, t_C_W):
+    """
+    From
+
+    r11 r12 r13 tx
+    r21 r22 r23 ty
+    r31 r32 r33 tz
+
+    to
+
+    r11 r12 r13 r21 r22 r23 r31 r32 r33 tx ty tz
+    """
+    return np.r_[R_C_W.flatten(), t_C_W]
 
 
 def run_vo(
@@ -171,11 +183,9 @@ def run_vo(
         P1 = P1[:, best_inlier_mask]
 
         if R_C_W_1 is not None:
-            T_C_W_1 = get_T_C_W(R_C_W_1, t_C_W_1).flatten()
+            T_C_W_1 = get_T_C_W_flat(R_C_W_1, t_C_W_1)
             camera_position = -R_C_W_1 @ t_C_W_1
             # print(camera_position)
-
-        plot.plot_keypoints(img=image_1.img, p_P_keypoints=P1)
 
         # region Plotting
         # print(i_0.img.shape)
@@ -204,22 +214,38 @@ def run_vo(
         # endregion --- END: add new candidate keypoints ---
 
         C0, C1 = C1, np.c_[C1, C1_new]
-        F0, F1 = F1, np.c_[F0[:, status_mask_candiate_kps == 1], C1_new]
+        F0, F1 = F1, np.c_[F0[:, status_mask_candiate_kps], C1_new]
         T0, T1 = (
             T1,
             np.c_[
-                T0[:, status_mask_candiate_kps == 1],
+                T0[:, status_mask_candiate_kps],
                 np.tile(T_C_W_1, (num_new_candidate_keypoints, 1)).T,
             ],
         )
         P0 = P1
+
+        plot.plot_keypoints(img=image_1.img, p_P_keypoints=[P1, C1], fmt=["rx", "gx"])
 
         print("C1")
         print(C1.shape)
         print("F1")
         print(F1.shape)
         print("T1")
-        print(T1.shape)
+        print(R_C_W_1, t_C_W_1)
+        print(T1[:, 0])
+        print(T1[:9, 0].reshape((3, 3)))
+        print(T1[9:, 0].reshape(3))
+
+        if F0.any():
+            plot_angle(
+                x1=F0[:, 30].T,
+                x2=C1[:, 30].T,
+                K=K,
+                R1=T0[:9, 30].reshape((3, 3)),
+                t1=T0[9:, 30].reshape(3),
+                R2=R_C_W_1,
+                t2=t_C_W_1,
+            )
 
         # plot.plot_keypoints(
         #     img=i_1.img, p_P_keypoints=p_P_candidate_keypoints_new, fmt="gx"
