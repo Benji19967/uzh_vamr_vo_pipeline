@@ -171,7 +171,6 @@ def run_vo(
     )
 
     for image_0, image_1 in zip(images, images[1:]):
-
         P0, P1, status_mask = run_klt(
             image_0=image_0, image_1=image_1, p0_P_keypoints=P0
         )
@@ -266,16 +265,16 @@ def run_vo(
             print(mask)
             # TODO: points where mask True --> triangulate
 
-            point_idx = 0
-            angle_deg = plot_angle(
-                x1=F1[:, point_idx].T,
-                x2=C1[:, point_idx].T,
-                K=K,
-                R1=T1[:, point_idx].reshape((3, 4))[:, :3],
-                t1=T1[:, point_idx].reshape((3, 4))[:, 3],
-                R2=R_C_W_1,
-                t2=t_C_W_1,
-            )
+            # point_idx = 0
+            # angle_deg = plot_angle(
+            #     x1=F1[:, point_idx].T,
+            #     x2=C1[:, point_idx].T,
+            #     K=K,
+            #     R1=T1[:, point_idx].reshape((3, 4))[:, :3],
+            #     t1=T1[:, point_idx].reshape((3, 4))[:, 3],
+            #     R2=R_C_W_1,
+            #     t2=t_C_W_1,
+            # )
             # print(status_mask_candiate_kps)
-            print(angle_deg)
+            # print(angle_deg)
             print(num_new_candidate_keypoints)

@@ -80,3 +80,16 @@ class ParkingDataReader(DataReader):
     @classmethod
     def _filename_from_id(cls, id: int) -> str:
         return f"img_{id:05}.png"
+
+
+if __name__ == "__main__":
+    KittiDataReader.show_image()
+    MalagaDataReader.show_images(end_id=4)
+    ParkingDataReader.show_image(id=5)
+
+    image1 = KittiDataReader.read_image()
+    image2 = MalagaDataReader.read_image(id=3)
+    images = ParkingDataReader.read_images(start_id=100, end_id=105)
+
+    for image in [image1, image2, *images]:
+        utils.show_img(img=image.img)
