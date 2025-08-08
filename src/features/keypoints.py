@@ -5,6 +5,36 @@ from image import Image
 from src.features.features_cv2 import good_features_to_track
 
 
+def find_keypoints(
+    img: np.ndarray,
+    max_keypoints: int,
+    exclude: list[np.ndarray] | None = None,
+):
+    """
+    Args:
+     - img
+     - max_keypoints
+     - exclude list[np.ndarray(2, N)]: keypoints already found in image
+
+    Returns:
+     - C1_new np.ndarray(2, N)
+     - num_new_candidate_keypoints
+    """
+    C1_new = good_features_to_track(img=img, max_features=max_keypoints)
+
+    # Remove keypoints that are already found
+    if exclude:
+        for keypoints in exclude:
+            C1_new = keep_unique(
+                p_I=C1_new,
+                p_I_existing=keypoints.astype(np.int16),
+            )
+
+    num_new_candidate_keypoints = C1_new.shape[1]
+
+    return C1_new, num_new_candidate_keypoints
+
+
 def get_keypoint_correspondences(
     image_0: Image,
     image_1: Image,
@@ -51,3 +81,34 @@ def get_keypoint_correspondences(
     I_1_matched_keypoints[1:] = I_1_keypoints[1, I_1_indices]
 
     return I_0_matched_keypoints, I_1_matched_keypoints
+
+
+def keep_unique(p_I: np.ndarray, p_I_existing: np.ndarray):
+    """
+    Remove existing points from p_I
+
+    Args:
+        - p_I           np.ndarray(2,N) | (x,y)
+        - p_I_existing  np.ndarray(2,N) | (x,y)
+    """
+    _assert_dtype_int(p_I)
+    _assert_dtype_int(p_I_existing)
+
+    # Example arrays
+
+    # Transpose to shape (N, 2) for easy comparison
+    p_I = p_I.T  # shape (4, 2)
+    p_I_existing = p_I_existing.T  # shape (2, 2)
+
+    # Create a mask of which rows in p_I are NOT in p_I_existing
+    mask = ~np.any(np.all(p_I[:, None] == p_I_existing[None, :], axis=2), axis=1)
+
+    # Filter p_I with the mask, then transpose back to shape (2, K)
+    p_I_filtered = p_I[mask].T
+
+    return p_I_filtered
+
+
+def _assert_dtype_int(arr: np.ndarray):
+    if not np.issubdtype(arr.dtype, np.integer):
+        raise TypeError("arr is not of type int")
