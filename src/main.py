@@ -21,17 +21,16 @@ K_PARKING = np.array(
 
 
 def main() -> None:
-    I_0 = ParkingDataReader.read_image(id=0)
-    I_1 = ParkingDataReader.read_image(id=2)
-
-    p1_P_keypoints, p2_P_keypoints, p_W_landmarks = initialize(
-        I_0=I_0, I_1=I_1, K=K_PARKING
+    image_0 = ParkingDataReader.read_image(id=0)
+    image_1 = ParkingDataReader.read_image(id=2)
+    p1_I_keypoints, p2_I_keypoints, p_W_landmarks = initialize(
+        image_0, image_1, K=K_PARKING
     )
-    images = ParkingDataReader.read_images(end_id=30)
 
+    images = ParkingDataReader.read_images(end_id=30)
     tracking.run_vo(
         images=images,
-        p_P_keypoints_initial=p1_P_keypoints,
+        p_I_keypoints_initial=p1_I_keypoints,
         p_W_landmarks_initial=p_W_landmarks,
         K=K_PARKING,
     )

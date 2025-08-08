@@ -26,12 +26,12 @@ def _build_measurement_matrix_Q(p_N: np.ndarray, p_W: np.ndarray) -> np.ndarray:
     return Q
 
 
-def estimatePoseDLT(p_P, p_W, K):
+def estimatePoseDLT(p_I, p_W, K):
     """
     Estimates the pose of a camera using a set of 2D-3D correspondences
     and a given camera matrix.
 
-    p_P  [2 x n] array containing the undistorted coordinates of the 2D points
+    p_I  [2 x n] array containing the undistorted coordinates of the 2D points
     p_W  [3 x n] array containing the 3D point positions
     K  [3 x 3] camera matrix
 
@@ -40,11 +40,11 @@ def estimatePoseDLT(p_P, p_W, K):
     where R is a rotation matrix. M_tilde encodes the transformation
     that maps points from the world frame to the camera frame
     """
-    num_points = p_P.shape[1]
+    num_points = p_I.shape[1]
 
     # Convert 2D to normalized coordinates (focal length=1 , origin at center of image)
-    p_P_hom = np.r_[p_P, np.ones((1, num_points))]
-    p_N_hom = np.linalg.inv(K) @ p_P_hom
+    p_I_hom = np.r_[p_I, np.ones((1, num_points))]
+    p_N_hom = np.linalg.inv(K) @ p_I_hom
     p_N = p_N_hom[:2, :]
 
     # Build measurement matrix Q

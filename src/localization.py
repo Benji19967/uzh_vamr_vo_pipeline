@@ -9,7 +9,7 @@ NUM_SAMPLES = 6
 
 
 def ransacLocalization(
-    p_P_keypoints: np.ndarray,
+    p_I_keypoints: np.ndarray,
     p_W_landmarks: np.ndarray,
     K: np.ndarray,
 ):
@@ -17,7 +17,7 @@ def ransacLocalization(
     best_inlier_mask should be 1xnum_matched and contain, only for the matched keypoints,
     False if the match is an outlier, True otherwise.
 
-    :param p_P_keypoints: (2, N) with p=(x, y)
+    :param p_I_keypoints: (2, N) with p=(x, y)
     :param p_W_landmarks: (3, N)
     :param K: camera matrix intrinsics
 
@@ -30,12 +30,12 @@ def ransacLocalization(
         - max_num_inliers_history
         - num_iteration_history
     """
-    N = p_P_keypoints.shape[1]
+    N = p_I_keypoints.shape[1]
     # Initialize RANSAC
     best_inlier_mask = np.zeros(N)
 
     # (row, col) to (u, v)
-    # p_P_keypoints = np.flip(p_P_keypoints, axis=0)
+    # p_I_keypoints = np.flip(p_I_keypoints, axis=0)
 
     max_num_inliers_history = []
     num_iteration_history = []
@@ -45,11 +45,11 @@ def ransacLocalization(
     for _ in range(NUM_ITERATIONS):
         # Model from k samples (DLT or P3P)
         indices = np.random.choice(np.arange(N), size=NUM_SAMPLES, replace=False)
-        p_P_keypoint_sample = p_P_keypoints[:, indices]
+        p_I_keypoint_sample = p_I_keypoints[:, indices]
         p_W_landmark_sample = p_W_landmarks[:, indices]
 
         M_C_W_guess = estimatePoseDLT(
-            p_P=p_P_keypoint_sample, p_W=p_W_landmark_sample, K=K
+            p_I=p_I_keypoint_sample, p_W=p_W_landmark_sample, K=K
         )
         R_C_W_guess = M_C_W_guess[:, :3]
         t_C_W_guess = M_C_W_guess[:, -1]
@@ -58,8 +58,8 @@ def ransacLocalization(
         p_W_hom_landmarks = np.r_[p_W_landmarks, np.ones((1, N))]
         T_C_W_guess = np.r_[M_C_W_guess, np.ones((1, 4))]
         p_C_landmarks = world_to_camera(p_W_hom=p_W_hom_landmarks, T_C_W=T_C_W_guess)
-        p_P_landmarks = camera_to_pixel(p_C_landmarks, K)
-        difference = p_P_keypoints - p_P_landmarks
+        p_I_landmarks = camera_to_pixel(p_C_landmarks, K)
+        difference = p_I_keypoints - p_I_landmarks
         errors = (difference**2).sum(0)
         is_inlier = errors < PIXEL_TOLERANCE**2
 
@@ -77,7 +77,7 @@ def ransacLocalization(
         t_C_W = None
     else:
         M_C_W = estimatePoseDLT(
-            p_P_keypoints[:, best_inlier_mask],
+            p_I_keypoints[:, best_inlier_mask],
             p_W_landmarks[:, best_inlier_mask],
             K,
         )

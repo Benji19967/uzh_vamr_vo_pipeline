@@ -6,13 +6,13 @@ from src.features.features_cv2 import good_features_to_track
 
 
 def get_keypoint_correspondences(
-    I_0: Image,
-    I_1: Image,
+    image_0: Image,
+    image_1: Image,
     max_num_keypoints: int,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Args:
-     - I_0, I_1: images to extract corresponding keypoints from
+     - image_0, image_1: images to extract corresponding keypoints from
      - max_num_keypoints: max number of keypoints to extract
 
     Returns:
@@ -24,13 +24,13 @@ def get_keypoint_correspondences(
     """
     keypoints = []
     descriptors = []
-    for image in [I_0, I_1]:
-        p_P_corners = good_features_to_track(
+    for image in [image_0, image_1]:
+        p_I_corners = good_features_to_track(
             img=image.img, max_features=max_num_keypoints
         )
-        keypoints.append(p_P_corners)
+        keypoints.append(p_I_corners)
 
-        desc = Descriptors(image=image, keypoints=p_P_corners)
+        desc = Descriptors(image=image, keypoints=p_I_corners)
         descriptors.append(desc.descriptors)
 
     matches = Descriptors.match(

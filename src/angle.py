@@ -11,8 +11,8 @@ MIN_ANGLE = 5.0
 
 
 def compute_bearing_angles_with_translation(
-    p_P_1: np.ndarray,
-    p_P_2: np.ndarray,
+    p_I_1: np.ndarray,
+    p_I_2: np.ndarray,
     poses_A: np.ndarray,
     T_C_W: np.ndarray,
     K: np.ndarray,
@@ -21,7 +21,7 @@ def compute_bearing_angles_with_translation(
     Compute angles between bearing vectors (with translation) and return a mask of angles > 5 degrees.
 
     Inputs:
-        p_P_1, p_P_2: np.ndarray(2, N) arrays of 2D image points
+        p_I_1, p_I_2: np.ndarray(2, N) arrays of 2D image points
         poses_A: np.ndarray(12, N) arrays of flattened 3x4 pose matrices, one per correspondence
         T_C_W:  flattened 3x4 pose matrix
         K: np.ndarray(3, 3) camera intrinsic matrix
@@ -31,12 +31,12 @@ def compute_bearing_angles_with_translation(
         angles_deg: (N,) array of angles in degrees
         angle_mask: (N,) boolean array, True if angle > 5 degrees
     """
-    N = p_P_1.shape[1]
+    N = p_I_1.shape[1]
 
     # Convert points to homogeneous coords
     ones = np.ones((1, N))
-    pts_A_h = np.vstack((p_P_1, ones))  # (3, N)
-    pts_B_h = np.vstack((p_P_2, ones))  # (3, N)
+    pts_A_h = np.vstack((p_I_1, ones))  # (3, N)
+    pts_B_h = np.vstack((p_I_2, ones))  # (3, N)
 
     K_inv = np.linalg.inv(K)
 
@@ -83,7 +83,6 @@ def compute_bearing_angles_with_translation(
 
 
 def plot_angle(x1, x2, K, R1, t1, R2, t2):
-
     # Camera intrinsics (identity matrix for visualization simplicity)
     # K = np.eye(3)
 

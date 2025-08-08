@@ -37,17 +37,17 @@ def plot_tracking(
 
 def plot_keypoints(
     img: np.ndarray,
-    p_P_keypoints: np.ndarray | list[np.ndarray],
+    p_I_keypoints: np.ndarray | list[np.ndarray],
     fmt: str | list[str] = "rx",
 ) -> None:
     plt.clf()
     plt.close()
     plt.imshow(img, cmap="gray")
-    if isinstance(p_P_keypoints, list):
-        for points, f in zip(p_P_keypoints, fmt):
+    if isinstance(p_I_keypoints, list):
+        for points, f in zip(p_I_keypoints, fmt):
             plt.plot(points[0, :], points[1, :], f, linewidth=2)
     else:
-        plt.plot(p_P_keypoints[0, :], p_P_keypoints[1, :], fmt, linewidth=2)
+        plt.plot(p_I_keypoints[0, :], p_I_keypoints[1, :], fmt, linewidth=2)
     plt.axis("off")
     plt.show()
 

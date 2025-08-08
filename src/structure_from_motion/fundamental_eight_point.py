@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def fundamentalEightPoint(p1_P_hom: np.ndarray, p2_P_hom: np.ndarray) -> np.ndarray:
+def fundamentalEightPoint(p1_I_hom: np.ndarray, p2_I_hom: np.ndarray) -> np.ndarray:
     """The 8-point algorithm for the estimation of the fundamental matrix F
 
     The eight-point algorithm for the fundamental matrix with a posteriori
@@ -11,17 +11,17 @@ def fundamentalEightPoint(p1_P_hom: np.ndarray, p2_P_hom: np.ndarray) -> np.ndar
     Reference: "Multiple View Geometry" (Hartley & Zisserman 2000), Sect. 10.1 page 262.
 
     Input: point correspondences
-     - p1_P_hom np.ndarray(3,N): homogeneous coordinates of 2-D points in image 1
-     - p2_P_hom np.ndarray(3,N): homogeneous coordinates of 2-D points in image 2
+     - p1_I_hom np.ndarray(3,N): homogeneous coordinates of 2-D points in image 1
+     - p2_I_hom np.ndarray(3,N): homogeneous coordinates of 2-D points in image 2
 
     Output:
      - F np.ndarray(3,3) : fundamental matrix
     """
-    N = p1_P_hom.shape[1]
+    N = p1_I_hom.shape[1]
 
     Q = np.zeros((N, 9))
     for i in range(N):
-        a = np.kron(p1_P_hom[:, i], p2_P_hom[:, i])
+        a = np.kron(p1_I_hom[:, i], p2_I_hom[:, i])
         Q[i, :] = a
 
     _, _, vh = np.linalg.svd(Q)

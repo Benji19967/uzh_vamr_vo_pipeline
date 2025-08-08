@@ -217,35 +217,35 @@ class Descriptors:
     def descriptors(self) -> np.ndarray:
         if self._descriptors is None:
             self._descriptors = self.compute_descriptors(
-                img=self.img, p_P_keypoints=self._keypoints
+                img=self.img, p_I_keypoints=self._keypoints
             )
         return self._descriptors
 
     def compute_descriptors(
         self,
         img: np.ndarray,
-        p_P_keypoints: np.ndarray,
+        p_I_keypoints: np.ndarray,
         descriptor_radius: int = DESCRIPTOR_RADIUS,
     ) -> np.ndarray:
         """Compute descriptors for keypoints
 
         Args:
         - img           np.ndarray
-        - p_P_keypoints np.ndarray(2,N): (x,y) keypoints to compute descriptors for
+        - p_I_keypoints np.ndarray(2,N): (x,y) keypoints to compute descriptors for
 
         Returns:
         - descriptors   np.ndarray(R,N): R=(2 * r + 1) ** 2
         """
         r = descriptor_radius
-        N = p_P_keypoints.shape[1]
-        print(p_P_keypoints)
+        N = p_I_keypoints.shape[1]
+        print(p_I_keypoints)
 
         # `(2 * r + 1) ** 2` is the number of pixels in a patch/descriptor
         descriptors = np.zeros([(2 * r + 1) ** 2, N])
         padded = np.pad(img, [(r, r), (r, r)], mode="constant", constant_values=0)
 
         for i in range(N):
-            kp = p_P_keypoints[:, i].astype(int) + r  # `+r` to account for padding
+            kp = p_I_keypoints[:, i].astype(int) + r  # `+r` to account for padding
 
             # store the the pixel intensities of the descriptors in a flattened way
             descriptors[:, i] = padded[

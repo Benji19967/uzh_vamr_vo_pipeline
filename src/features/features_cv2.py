@@ -12,7 +12,7 @@ def good_features_to_track(img: np.ndarray, max_features: int):
      - max_features int: max number of features that will be detected
 
     Returns:
-     - p_P_corners   np.ndarray(2,N): (x,y) coordinates of 2D corners/features detected
+     - p_I_corners   np.ndarray(2,N): (x,y) coordinates of 2D corners/features detected
     """
     R_min = 0.01
     min_euclidean_distance_between_corners = 10
@@ -20,6 +20,6 @@ def good_features_to_track(img: np.ndarray, max_features: int):
         img, max_features, R_min, min_euclidean_distance_between_corners
     )
     corners = np.int0(corners)
-    p_P_corners = from_cv2(corners)  # type: ignore
+    p_I_corners = from_cv2(corners)  # type: ignore
 
-    return p_P_corners
+    return p_I_corners

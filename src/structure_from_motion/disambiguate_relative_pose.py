@@ -3,7 +3,7 @@ import numpy as np
 from structure_from_motion.linear_triangulation import linear_triangulation
 
 
-def disambiguateRelativePose(Rots, u3, p1_P_hom, p2_P_hom, K1, K2):
+def disambiguateRelativePose(Rots, u3, p1_I_hom, p2_I_hom, K1, K2):
     """DISAMBIGUATERELATIVEPOSE- finds the correct relative camera pose (among
     four possible configurations) by returning the one that yields the most points
     lying in front of the image plane (with positive depth).
@@ -11,8 +11,8 @@ def disambiguateRelativePose(Rots, u3, p1_P_hom, p2_P_hom, K1, K2):
     Arguments:
       Rots        -  3x3x2: the two possible rotations returned by decomposeEssentialMatrix
       u3          -  a 3x1 vector with the translation information returned by decomposeEssentialMatrix
-      p1_P_hom    -  3xN homogeneous coordinates of point correspondences in image 1
-      p2_P_hom    -  3xN homogeneous coordinates of point correspondences in image 2
+      p1_I_hom    -  3xN homogeneous coordinates of point correspondences in image 1
+      p2_I_hom    -  3xN homogeneous coordinates of point correspondences in image 2
       K1          -  3x3 calibration matrix for camera 1
       K2          -  3x3 calibration matrix for camera 2
 
@@ -35,7 +35,7 @@ def disambiguateRelativePose(Rots, u3, p1_P_hom, p2_P_hom, K1, K2):
             T_C2_C1_test = u3 * (-1) ** iSignT
 
             M2 = K2 @ np.c_[R_C2_C1_test, T_C2_C1_test]
-            P_C1 = linear_triangulation(p1_P_hom, p2_P_hom, M1, M2)
+            P_C1 = linear_triangulation(p1_I_hom, p2_I_hom, M1, M2)
 
             # project in both cameras
             P_C2 = np.c_[R_C2_C1_test, T_C2_C1_test] @ P_C1

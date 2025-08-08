@@ -9,16 +9,18 @@ MAX_NUM_KEYPOINTS = 1000
 
 
 def initialize(
-    I_0: Image,
-    I_1: Image,
+    image_0: Image,
+    image_1: Image,
     K: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     From two images find a set of corresponding 2D keypoints and compute the
-    associated 3D landmarks
+    associated 3D landmarks.
+
+    Run RANSAC to remove outliers.
 
     Args:
-     - I_0, I_1: images to extract corresponding keypoints from
+     - image_0, image_1: images to extract corresponding keypoints from
      - K: camera matrix
 
     Returns:
@@ -29,19 +31,19 @@ def initialize(
                 (3xN) landmarks P_W in 3D coordinates (x, y, z)
             )
     """
-    p1_P_keypoints, p2_P_keypoints = get_keypoint_correspondences(
-        I_0=I_0, I_1=I_1, max_num_keypoints=MAX_NUM_KEYPOINTS
+    p1_I_keypoints, p2_I_keypoints = get_keypoint_correspondences(
+        image_0=image_0, image_1=image_1, max_num_keypoints=MAX_NUM_KEYPOINTS
     )
 
-    p_W, _, _ = sfm.run_sfm(p1_P=p1_P_keypoints, p2_P=p2_P_keypoints, K=K)
+    p_W, _, _ = sfm.run_sfm(p1_I=p1_I_keypoints, p2_I=p2_I_keypoints, K=K)
     _, _, best_inlier_mask, _, _ = ransacLocalization(
-        p_P_keypoints=p1_P_keypoints,
+        p_I_keypoints=p1_I_keypoints,
         p_W_landmarks=p_W,
         K=K,
     )
 
     return (
-        p1_P_keypoints[:, best_inlier_mask],
-        p2_P_keypoints[:, best_inlier_mask],
+        p1_I_keypoints[:, best_inlier_mask],
+        p2_I_keypoints[:, best_inlier_mask],
         p_W[:, best_inlier_mask],
     )

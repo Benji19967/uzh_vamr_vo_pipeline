@@ -61,13 +61,13 @@ def camera_to_pixel(
         D: distortion coefficients (4x1)
 
     Returns:
-        p_P: 2d points in pixel coordinates (2xN)
+        p_I: 2d points in pixel coordinates (2xN)
     """
     u_v_lambda = np.matmul(K, p_C)
-    p_P = u_v_lambda[:2, :] / u_v_lambda[2]
+    p_I = u_v_lambda[:2, :] / u_v_lambda[2]
 
     if D is not None:
-        p_P_distorted = distort_points(x=p_P, K=K, D=D)
-        return p_P_distorted
+        p_I_distorted = distort_points(x=p_I, K=K, D=D)
+        return p_I_distorted
 
-    return p_P
+    return p_I

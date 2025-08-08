@@ -21,30 +21,30 @@ def assert_dtype_int(arr: np.ndarray):
         raise TypeError("arr is not of type int")
 
 
-def keep_unique(p_P: np.ndarray, p_P_existing: np.ndarray):
+def keep_unique(p_I: np.ndarray, p_I_existing: np.ndarray):
     """
-    Remove existing points from p_P
+    Remove existing points from p_I
 
     Args:
-        - p_P           np.ndarray(2,N) | (x,y)
-        - p_P_existing  np.ndarray(2,N) | (x,y)
+        - p_I           np.ndarray(2,N) | (x,y)
+        - p_I_existing  np.ndarray(2,N) | (x,y)
     """
-    assert_dtype_int(p_P)
-    assert_dtype_int(p_P_existing)
+    assert_dtype_int(p_I)
+    assert_dtype_int(p_I_existing)
 
     # Example arrays
 
     # Transpose to shape (N, 2) for easy comparison
-    p_P = p_P.T  # shape (4, 2)
-    p_P_existing = p_P_existing.T  # shape (2, 2)
+    p_I = p_I.T  # shape (4, 2)
+    p_I_existing = p_I_existing.T  # shape (2, 2)
 
-    # Create a mask of which rows in p_P are NOT in p_P_existing
-    mask = ~np.any(np.all(p_P[:, None] == p_P_existing[None, :], axis=2), axis=1)
+    # Create a mask of which rows in p_I are NOT in p_I_existing
+    mask = ~np.any(np.all(p_I[:, None] == p_I_existing[None, :], axis=2), axis=1)
 
-    # Filter p_P with the mask, then transpose back to shape (2, K)
-    p_P_filtered = p_P[mask].T
+    # Filter p_I with the mask, then transpose back to shape (2, K)
+    p_I_filtered = p_I[mask].T
 
-    return p_P_filtered
+    return p_I_filtered
 
 
 """
@@ -59,10 +59,10 @@ Ti: 12xM
 
 
 def initialize_state(
-    p_P_keypoints_initial: np.ndarray,
+    p_I_keypoints_initial: np.ndarray,
     p_W_landmarks_initial: np.ndarray,
 ):
-    P0 = p_P_keypoints_initial
+    P0 = p_I_keypoints_initial
     X0 = p_W_landmarks_initial
     C0 = np.zeros((2, 0), dtype=np.int32)
     C1 = np.zeros((2, 0), dtype=np.int32)
@@ -74,14 +74,14 @@ def initialize_state(
     return P0, X0, C0, C1, F0, F1, T0, T1
 
 
-def run_klt(image_0: Image, image_1: Image, p0_P_keypoints: np.ndarray):
+def run_klt(image_0: Image, image_1: Image, p0_I_keypoints: np.ndarray):
     """
     Run KLT on the images: track keypoints from image_0 to image_1
 
     Args:
         - image_0 Image
         - image_1 Image
-        - p0_P_keypoints np.ndarray(2,N) | (x,y)
+        - p0_I_keypoints np.ndarray(2,N) | (x,y)
     """
     # Parameters for lucas kanade optical flow
     lk_params = dict(
@@ -91,14 +91,14 @@ def run_klt(image_0: Image, image_1: Image, p0_P_keypoints: np.ndarray):
     )
 
     # calculate optical flow
-    p0_P_keypoints_cv2 = to_cv2(p0_P_keypoints)
-    p1_P_keypoints_cv2, status, err = cv2.calcOpticalFlowPyrLK(
-        image_0.img, image_1.img, p0_P_keypoints_cv2, None, **lk_params
+    p0_I_keypoints_cv2 = to_cv2(p0_I_keypoints)
+    p1_I_keypoints_cv2, status, err = cv2.calcOpticalFlowPyrLK(
+        image_0.img, image_1.img, p0_I_keypoints_cv2, None, **lk_params
     )
 
     # Select good points
-    # p0_P_keypoints_cv2 = p0_P_keypoints_cv2[status == 1]
-    # p1_P_keypoints_cv2 = p1_P_keypoints_cv2[status == 1]
+    # p0_I_keypoints_cv2 = p0_I_keypoints_cv2[status == 1]
+    # p1_I_keypoints_cv2 = p1_I_keypoints_cv2[status == 1]
 
     def from_cv2_status(st):
         """
@@ -107,7 +107,7 @@ def run_klt(image_0: Image, image_1: Image, p0_P_keypoints: np.ndarray):
         """
         return st.T[0]
 
-    if p1_P_keypoints_cv2 is None:
+    if p1_I_keypoints_cv2 is None:
         print("BAD")
         return (
             np.zeros((2, 0), dtype=np.int32),
@@ -116,8 +116,8 @@ def run_klt(image_0: Image, image_1: Image, p0_P_keypoints: np.ndarray):
         )
     print("GOOD")
     return (
-        from_cv2(p0_P_keypoints_cv2),
-        from_cv2(p1_P_keypoints_cv2),
+        from_cv2(p0_I_keypoints_cv2),
+        from_cv2(p1_I_keypoints_cv2),
         from_cv2_status(st=status).astype(np.bool8),
     )
 
@@ -153,7 +153,7 @@ def filter(p_Points: np.ndarray, mask: np.ndarray):
 
 def run_vo(
     images: Sequence[Image],
-    p_P_keypoints_initial: np.ndarray,
+    p_I_keypoints_initial: np.ndarray,
     p_W_landmarks_initial: np.ndarray,
     K: np.ndarray,
 ):
@@ -162,23 +162,23 @@ def run_vo(
 
     Args:
         - images list[np.ndarray]
-        - p_P_keypoints_initial np.ndarray(2,N)   | (x,y)
+        - p_I_keypoints_initial np.ndarray(2,N)   | (x,y)
         - p_W_landmarks_initial: np.ndarray(3, N) | (x,y,z)
         - K np.ndarray(3, 3): camera matrix
     """
     P0, X0, C0, C1, F0, F1, T0, T1 = initialize_state(
-        p_P_keypoints_initial, p_W_landmarks_initial
+        p_I_keypoints_initial, p_W_landmarks_initial
     )
 
     for image_0, image_1 in zip(images, images[1:]):
         P0, P1, status_mask = run_klt(
-            image_0=image_0, image_1=image_1, p0_P_keypoints=P0
+            image_0=image_0, image_1=image_1, p0_I_keypoints=P0
         )
         P0, P1 = P0[:, status_mask], P1[:, status_mask]
         X0 = X0[:, status_mask]
 
         _, C1, status_mask_candiate_kps = run_klt(
-            image_0=image_0, image_1=image_1, p0_P_keypoints=C1
+            image_0=image_0, image_1=image_1, p0_I_keypoints=C1
         )
         # C0 = filter(C0, status_mask_candiate_kps)
         C1 = filter(C1, status_mask_candiate_kps)
@@ -190,7 +190,7 @@ def run_vo(
         print(f"P1: {P1.shape}")
         print(f"X0: {X0.shape}")
         R_C_W_1, t_C_W_1, best_inlier_mask, _, _ = ransacLocalization(
-            p_P_keypoints=P1,
+            p_I_keypoints=P1,
             p_W_landmarks=X0,
             K=K,
         )
@@ -205,8 +205,8 @@ def run_vo(
         # region Plotting
         # print(i_0.img.shape)
         # plot.plot_tracking(
-        #     I0_keypoints=from_cv2(p0_P_keypoints_cv2)[:, best_inlier_mask],
-        #     I1_keypoints=from_cv2(p1_P_keypoints_cv2)[:, best_inlier_mask],
+        #     I0_keypoints=from_cv2(p0_I_keypoints_cv2)[:, best_inlier_mask],
+        #     I1_keypoints=from_cv2(p1_I_keypoints_cv2)[:, best_inlier_mask],
         #     figsize_pixels_x=i_0.img.shape[1],
         #     figsize_pixels_y=i_0.img.shape[0],
         # )
@@ -217,13 +217,13 @@ def run_vo(
 
         # Remove keypoints for which landmark is already computed
         C1_new = keep_unique(
-            p_P=C1_new,
-            p_P_existing=P1.astype(np.int16),
+            p_I=C1_new,
+            p_I_existing=P1.astype(np.int16),
         )
         # Remove keypoints that are already tracked
         C1_new = keep_unique(
-            p_P=C1_new,
-            p_P_existing=C1.astype(np.int16),
+            p_I=C1_new,
+            p_I_existing=C1.astype(np.int16),
         )
         num_new_candidate_keypoints = C1_new.shape[1]
         # endregion --- END: add new candidate keypoints ---
@@ -251,12 +251,12 @@ def run_vo(
 
         P0 = P1
 
-        plot.plot_keypoints(img=image_1.img, p_P_keypoints=[P1, C1], fmt=["rx", "gx"])
+        plot.plot_keypoints(img=image_1.img, p_I_keypoints=[P1, C1], fmt=["rx", "gx"])
 
         if F0.any():
             _, angles_deg, mask = compute_bearing_angles_with_translation(
-                p_P_1=F1,
-                p_P_2=C1,
+                p_I_1=F1,
+                p_I_2=C1,
                 poses_A=T1,
                 T_C_W=T_C_W_1,
                 K=K,
