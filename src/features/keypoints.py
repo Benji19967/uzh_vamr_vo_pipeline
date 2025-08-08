@@ -17,22 +17,22 @@ def find_keypoints(
      - exclude list[np.ndarray(2, N)]: keypoints already found in image
 
     Returns:
-     - C1_new np.ndarray(2, N)
+     - p_I_new_keypoints np.ndarray(2, N)
      - num_new_candidate_keypoints
     """
-    C1_new = good_features_to_track(img=img, max_features=max_keypoints)
+    p_I_new_keypoints = good_features_to_track(img=img, max_features=max_keypoints)
 
     # Remove keypoints that are already found
     if exclude:
         for keypoints in exclude:
-            C1_new = keep_unique(
-                p_I=C1_new,
+            p_I_new_keypoints = keep_unique(
+                p_I=p_I_new_keypoints,
                 p_I_existing=keypoints.astype(np.int16),
             )
 
-    num_new_candidate_keypoints = C1_new.shape[1]
+    num_new_candidate_keypoints = p_I_new_keypoints.shape[1]
 
-    return C1_new, num_new_candidate_keypoints
+    return p_I_new_keypoints, num_new_candidate_keypoints
 
 
 def get_keypoint_correspondences(
