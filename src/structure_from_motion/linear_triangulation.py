@@ -24,6 +24,8 @@ def reprojection_error(
 
     # Compute pixel-wise error
     errors = np.linalg.norm(p_proj - p_I, axis=0)  # shape (N,)
+    print("ERRORS")
+    print(errors)
     return np.mean(errors)
 
 

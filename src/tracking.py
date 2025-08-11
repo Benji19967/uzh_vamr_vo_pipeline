@@ -117,12 +117,11 @@ def run_vo(
             p_W_landmarks=X1,
             K=K,
         )
-        print(R_C_W, t_C_W, best_inlier_mask)
-        plot.plot_keypoints(
-            image_1.img,
-            [P1[:, best_inlier_mask], P1[:, ~best_inlier_mask]],
-            fmt=["gx", "rx"],
-        )
+        # plot.plot_keypoints(
+        #     image_1.img,
+        #     [P1[:, best_inlier_mask], P1[:, ~best_inlier_mask]],
+        #     fmt=["gx", "rx"],
+        # )
         X1 = filter(X1, best_inlier_mask)
         P1 = filter(P1, best_inlier_mask)
 
@@ -137,18 +136,19 @@ def run_vo(
             print("POSE")
             print(T_C_W)
             camera_position = -R_C_W @ t_C_W
-            # print(camera_position)
+            print("CAMERA POSITION")
+            print(camera_position)
 
         print("REPROJECTION ERROR INIT")
-        reproj_error = reprojection_error(
-            p_W_hom=np.r_[X1, np.ones((1, X1.shape[1]))],
-            p_I=P1,
-            T_C_W=T_C_W,
-            K=K,
-        )
-        print(reproj_error)
-        if reproj_error > 100:
-            print(X1[:, 0])
+        # reproj_error = reprojection_error(
+        #     p_W_hom=np.r_[X1, np.ones((1, X1.shape[1]))],
+        #     p_I=P1,
+        #     T_C_W=T_C_W,
+        #     K=K,
+        # )
+        # print(reproj_error)
+        # if reproj_error > 100:
+        #     print(X1[:, 0])
 
         C1_new, num_new_candidate_keypoints = keypoints.find_keypoints(
             img=image_1.img,
@@ -156,14 +156,14 @@ def run_vo(
             exclude=[C1, P1],
         )
 
-        # if C1.shape[1] < 200:
-        # keep new candidate keypoints
-        C1 = np.c_[C1, C1_new]
-        F1 = np.c_[F1, C1_new]
-        T1 = np.c_[
-            T1,
-            np.tile(T_C_W_flat, (num_new_candidate_keypoints, 1)).T,
-        ]
+        if C1.shape[1] < 200:
+            # keep new candidate keypoints
+            C1 = np.c_[C1, C1_new]
+            F1 = np.c_[F1, C1_new]
+            T1 = np.c_[
+                T1,
+                np.tile(T_C_W_flat, (num_new_candidate_keypoints, 1)).T,
+            ]
 
         # plot.plot_keypoints(img=image_1.img, p_I_keypoints=[P1, C1], fmt=["rx", "gx"])
         # plot.plot_keypoints(img=image_1.img, p_I_keypoints=P1, fmt="rx")
@@ -189,7 +189,7 @@ def run_vo(
             # print(C1_to_triangulate)
             # print(F1_to_triangulate)
 
-            plot.plot_landmarks_top_view(p_W=X1)
+            # plot.plot_landmarks_top_view(p_W=X1)
 
             status_landmarks = []
             p_W_hom_new_landmarks = np.empty((4, C1.shape[1]))
@@ -214,7 +214,7 @@ def run_vo(
                     # print("REPROJECTION ERROR")
                     # print(
                     #     reprojection_error(
-                    #         p_W_hom=p_W_hom_landmark[:, 0],
+                    #         p_W_hom=p_W_hom_landmark[:, :1],
                     #         p_I=C1[:, i : i + 1],
                     #         T_C_W=T_C_W_flat.reshape((3, 4)),
                     #         K=K,
@@ -234,37 +234,50 @@ def run_vo(
                 # plot.plot_landmarks_top_view(p_W_hom_new_landmarks, "yx")
 
             status_mask_candidate_landmarks = np.array(status_landmarks)
-            best_inlier_mask_candidates = np.full(len(status_landmarks), False)
-            # if C1.any() and status_mask_candidate_landmarks.sum() > 0:
-            #     _, _, best_inlier_mask_candidates, _, _ = ransacLocalization(
-            #         p_I_keypoints=C1[:, status_mask_candidate_landmarks],
-            #         p_W_landmarks=p_W_hom_new_landmarks[
-            #             :3, status_mask_candidate_landmarks
-            #         ],
-            #         K=K,
-            #     )
+            best_inlier_mask_candidates = np.full(sum(status_landmarks), False)
+            if C1.any() and status_mask_candidate_landmarks.sum() >= 4:
+                _, _, best_inlier_mask_candidates = ransacLocalizationCV2(
+                    p_I_keypoints=C1[:, status_mask_candidate_landmarks],
+                    p_W_landmarks=p_W_hom_new_landmarks[
+                        :3, status_mask_candidate_landmarks
+                    ],
+                    K=K,
+                )
 
-            # P1 = np.c_[
-            #     P1,
-            #     filter(
-            #         C1[:, status_mask_candidate_landmarks], best_inlier_mask_candidates
-            #     ),
-            # ]
-            # X1 = np.c_[
-            #     X1,
-            #     filter(
-            #         p_W_hom_new_landmarks[:3, status_mask_candidate_landmarks],
-            #         best_inlier_mask_candidates,
-            #     ),
-            # ]
-            #
-            # C1 = C1[:, ~status_mask_candidate_landmarks]
-            # F1 = F1[:, ~status_mask_candidate_landmarks]
-            # T1 = T1[:, ~status_mask_candidate_landmarks]
-            #
+            P1 = np.c_[
+                P1,
+                filter(
+                    C1[:, status_mask_candidate_landmarks], best_inlier_mask_candidates
+                ),
+                # C1[:, status_mask_candidate_landmarks],
+            ]
+            X1 = np.c_[
+                X1,
+                filter(
+                    p_W_hom_new_landmarks[:3, status_mask_candidate_landmarks],
+                    best_inlier_mask_candidates,
+                ),
+                # p_W_hom_new_landmarks[:3, status_mask_candidate_landmarks],
+            ]
+            reproj_error = reprojection_error(
+                p_W_hom=filter(
+                    p_W_hom_new_landmarks[:, status_mask_candidate_landmarks],
+                    best_inlier_mask_candidates,
+                ),
+                p_I=filter(
+                    C1[:, status_mask_candidate_landmarks], best_inlier_mask_candidates
+                ),
+                T_C_W=T_C_W,
+                K=K,
+            )
+
+            C1 = C1[:, ~status_mask_candidate_landmarks]
+            F1 = F1[:, ~status_mask_candidate_landmarks]
+            T1 = T1[:, ~status_mask_candidate_landmarks]
+
             print("After adding new landmarks")
             print("Num new candidate keypoints: ", num_new_candidate_keypoints)
-            print("Num new landmarks added: ", best_inlier_mask_candidates.sum())
+            # print("Num new landmarks added: ", best_inlier_mask_candidates.sum())
             print(f"P1: {P1.shape}")
             print(f"X1: {X1.shape}")
             print(f"C1: {C1.shape}")
