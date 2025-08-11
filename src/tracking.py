@@ -12,6 +12,7 @@ from image import Image
 from klt import run_klt
 from localization import ransacLocalization
 from src.angle import compute_bearing_angles_with_translation, plot_angle
+from src.structure_from_motion.linear_triangulation import linear_triangulation
 from structure_from_motion import sfm
 
 # TODO: add a note about notation / documentation regarding (x,y) vs (y,x)
@@ -94,7 +95,9 @@ def run_vo(
         print(f"P1: {P1.shape}")
         print(f"X1: {X1.shape}")
 
+        C0 = C1
         C1, status_mask_candiate_kps = run_klt(image_0, image_1, C1)
+        C0 = filter(C0, status_mask_candiate_kps)
         C1 = filter(C1, status_mask_candiate_kps)
         F1 = filter(F1, status_mask_candiate_kps)
         T1 = filter(T1, status_mask_candiate_kps)
@@ -104,6 +107,8 @@ def run_vo(
             p_W_landmarks=X1,
             K=K,
         )
+        print("best_inlier_mask")
+        print(best_inlier_mask)
         X1 = filter(X1, best_inlier_mask)
         P1 = filter(P1, best_inlier_mask)
 
@@ -134,10 +139,11 @@ def run_vo(
                 np.tile(T_C_W_1, (num_new_candidate_keypoints, 1)).T,
             ]
 
-        plot.plot_keypoints(img=image_1.img, p_I_keypoints=[P1, C1], fmt=["rx", "gx"])
+        # plot.plot_keypoints(img=image_1.img, p_I_keypoints=[P1, C1], fmt=["rx", "gx"])
+        plot.plot_keypoints(img=image_1.img, p_I_keypoints=P1, fmt="rx")
 
         if F1.any():
-            _, angles_deg, mask = compute_bearing_angles_with_translation(
+            _, angles_deg, mask_angle = compute_bearing_angles_with_translation(
                 p_I_1=F1,
                 p_I_2=C1,
                 poses_A=T1,
@@ -145,29 +151,58 @@ def run_vo(
                 K=K,
             )
             print(angles_deg)
-            print(mask)
-            # TODO: points where mask True --> triangulate
+            print(mask_angle)
 
-            # point_idx = 0
-            # angle_deg = plot_angle(
-            #     x1=F1[:, point_idx].T,
-            #     x2=C1[:, point_idx].T,
-            #     K=K,
-            #     R1=T1[:, point_idx].reshape((3, 4))[:, :3],
-            #     t1=T1[:, point_idx].reshape((3, 4))[:, 3],
-            #     R2=R_C_W_1,
-            #     t2=t_C_W_1,
-            # )
-            # print(status_mask_candiate_kps)
-            # print(angle_deg)
+            # TODO: points where mask True --> triangulate
+            # C1_to_triangulate = C1[:, mask_angle]
+            # F1_to_triangulate = F1[:, mask_angle]
+            # T1_to_triangulate = T1[:, mask_angle]
+
+            print("PPPPPPPPPPPP")
+            print(P1)
+            # print(C1_to_triangulate)
+            # print(F1_to_triangulate)
+
+            plot.plot_landmarks_top_view(p_W=X1)
+
+            status_landmarks = []
+            p_W_hom_new_landmarks = np.empty((4, C1.shape[1]))
+            for i, mask_angle_status in enumerate(mask_angle):
+                if mask_angle_status == True:
+                    p_W_landmark = linear_triangulation(
+                        p1_I_hom=np.r_[F1[:, i : i + 1], [[1]]],
+                        p2_I_hom=np.r_[C1[:, i : i + 1], [[1]]],
+                        M1=K @ T1[:, i : i + 1].reshape((3, 4)),
+                        M2=K @ T_C_W_1.reshape((3, 4)),
+                    )
+                    p_W_hom_new_landmarks[:, i] = p_W_landmark[:, 0]
+                    if p_W_landmark[2, 0] > 0:  # z-value
+                        status_landmarks.append(True)
+                    else:
+                        status_landmarks.append(False)
+                else:
+                    status_landmarks.append(False)
+
+                # print("XXXXXXXXXXXXXXXX")
+                # print(X1)
+                # print(p_W_landmark)
+                # plot.plot_landmarks_top_view(p_W_hom_new_landmarks, "yx")
+
+            print("STATUS")
+            print(status_landmarks)
+            status_mask_candidate_landmarks = np.array(status_landmarks)
+            P1 = np.c_[P1, C1[:, status_mask_candidate_landmarks]]
+            X1 = np.c_[X1, p_W_hom_new_landmarks[:3, status_mask_candidate_landmarks]]
+            C1 = C1[:, ~status_mask_candidate_landmarks]
+            F1 = F1[:, ~status_mask_candidate_landmarks]
+            T1 = T1[:, ~status_mask_candidate_landmarks]
             print(num_new_candidate_keypoints)
 
         # region Plotting
-        # print(i_0.img.shape)
         # plot.plot_tracking(
-        #     I0_keypoints=from_cv2(p0_I_keypoints_cv2)[:, best_inlier_mask],
-        #     I1_keypoints=from_cv2(p1_I_keypoints_cv2)[:, best_inlier_mask],
-        #     figsize_pixels_x=i_0.img.shape[1],
-        #     figsize_pixels_y=i_0.img.shape[0],
+        #     I0_keypoints=C0,
+        #     I1_keypoints=C1,
+        #     figsize_pixels_x=image_0.img.shape[1],
+        #     figsize_pixels_y=image_0.img.shape[0],
         # )
         # endregion

@@ -27,11 +27,18 @@ def plot_tracking(
     if figsize_pixels_x and figsize_pixels_y:
         plt.figure(figsize=(figsize_pixels_x / DPI, figsize_pixels_y / DPI), dpi=DPI)
         ax = plt.gca()
-        ax.set_xlim([0, figsize_pixels_x])
-        ax.set_ylim([0, figsize_pixels_y])
+        ax.set_xlim([0, figsize_pixels_x + 1])
+        ax.set_ylim([0, figsize_pixels_y + 1])
     plt.gca().invert_yaxis()  # because p=(x, y) of keypoints are given for origin at top left corner
     for i in range(x_from.shape[0]):
         plt.plot([x_from[i], x_to[i]], [y_from[i], y_to[i]], "g-", linewidth=1)
+    plt.show()
+
+
+def plot_landmarks_top_view(p_W: np.ndarray, fmt="bx") -> None:
+    plt.clf()
+    plt.close()
+    plt.plot(p_W[0, :], p_W[2, :], fmt)
     plt.show()
 
 

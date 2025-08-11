@@ -76,11 +76,15 @@ def ransacLocalization(
         R_C_W = None
         t_C_W = None
     else:
-        M_C_W = estimatePoseDLT(
-            p_I_keypoints[:, best_inlier_mask],
-            p_W_landmarks[:, best_inlier_mask],
-            K,
-        )
+        # Statement suggests the guess is better than running DLT again
+
+        # M_C_W = estimatePoseDLT(
+        #     p_I_keypoints[:, best_inlier_mask],
+        #     p_W_landmarks[:, best_inlier_mask],
+        #     K,
+        # )
+
+        M_C_W = M_C_W_guess
         R_C_W = M_C_W[:, :3]
         t_C_W = M_C_W[:, -1]
 
