@@ -120,7 +120,6 @@ class HarrisScores:
 
 
 class Keypoints:
-
     NUM_KEYPOINTS = 200
     NONMAXIMUM_SUPRESSION_RADIUS = 8
 
@@ -200,7 +199,6 @@ class Keypoints:
 
 
 class Descriptors:
-
     DESCRIPTOR_RADIUS = 9
     MATCH_LAMBDA = 4
 
@@ -238,7 +236,6 @@ class Descriptors:
         """
         r = descriptor_radius
         N = p_I_keypoints.shape[1]
-        print(p_I_keypoints)
 
         # `(2 * r + 1) ** 2` is the number of pixels in a patch/descriptor
         descriptors = np.zeros([(2 * r + 1) ** 2, N])

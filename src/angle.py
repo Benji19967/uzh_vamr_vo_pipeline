@@ -7,7 +7,7 @@ def normalize(v):
     return v / np.linalg.norm(v)
 
 
-MIN_ANGLE = 5.0
+MIN_ANGLE = 10.0
 
 
 def compute_bearing_angles_with_translation(

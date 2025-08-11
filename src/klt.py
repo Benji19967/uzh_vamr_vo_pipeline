@@ -39,12 +39,10 @@ def run_klt(image_0: Image, image_1: Image, p0_I_keypoints: np.ndarray):
         return st.T[0]
 
     if p1_I_keypoints_cv2 is None:
-        print("BAD")
         return (
             np.zeros((2, 0), dtype=np.int32),
             np.full((0), False),
         )
-    print("GOOD")
     return (
         from_cv2(p1_I_keypoints_cv2),
         from_cv2_status(st=status).astype(np.bool8),

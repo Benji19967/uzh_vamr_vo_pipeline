@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 
 from estimate_pose_dlt import estimatePoseDLT
@@ -6,8 +7,11 @@ from transformations import camera_to_pixel, world_to_camera
 NUM_ITERATIONS = 2000
 PIXEL_TOLERANCE = 10
 NUM_SAMPLES = 6
+MIN_INLIER_COUNT = 6
 
 
+# TODO: yields a rather large reprojection error sometimes (>500 or >1000px)
+# the cv2 equivalent consistently yields <10px for the same inputs
 def ransacLocalization(
     p_I_keypoints: np.ndarray,
     p_W_landmarks: np.ndarray,
@@ -31,8 +35,13 @@ def ransacLocalization(
         - num_iteration_history
     """
     N = p_I_keypoints.shape[1]
+    if N < NUM_SAMPLES:
+        raise ValueError(
+            f"Num points {N} is smaller than num samples {NUM_SAMPLES} in RANSAC"
+        )
+
     # Initialize RANSAC
-    best_inlier_mask = np.zeros(N)
+    best_inlier_mask = np.zeros(N, dtype=np.bool_)
 
     # (row, col) to (u, v)
     # p_I_keypoints = np.flip(p_I_keypoints, axis=0)
@@ -63,9 +72,7 @@ def ransacLocalization(
         errors = (difference**2).sum(0)
         is_inlier = errors < PIXEL_TOLERANCE**2
 
-        min_inlier_count = 6
-
-        if is_inlier.sum() > max_num_inliers and is_inlier.sum() >= min_inlier_count:
+        if is_inlier.sum() > max_num_inliers and is_inlier.sum() >= MIN_INLIER_COUNT:
             max_num_inliers = is_inlier.sum()
             best_inlier_mask = is_inlier
 
@@ -95,3 +102,42 @@ def ransacLocalization(
         max_num_inliers_history,
         num_iteration_history,
     )
+
+
+def ransacLocalizationCV2(
+    p_I_keypoints: np.ndarray,
+    p_W_landmarks: np.ndarray,
+    K: np.ndarray,
+):
+    """
+    :param p_I_keypoints: (2, N) with p=(x, y)
+    :param p_W_landmarks: (3, N)
+    :param K: camera matrix intrinsics
+
+    where N is the number of keypoints
+
+    :returns:
+        - R_C_W
+        - t_C_W
+        - inlier_mask (N,): False (outlier) / True (inlier)
+    """
+    N = p_I_keypoints.shape[1]
+    dist_coeffs = np.zeros((4, 1))
+    success, rvec, t_C_W, inliers = cv2.solvePnPRansac(
+        objectPoints=p_W_landmarks.T.reshape(-1, 1, 3),
+        imagePoints=p_I_keypoints.T.reshape(-1, 1, 2),
+        cameraMatrix=K,
+        distCoeffs=dist_coeffs,
+        reprojectionError=8.0,
+        confidence=0.99,
+        flags=cv2.SOLVEPNP_ITERATIVE,
+    )
+    R_C_W, _ = cv2.Rodrigues(rvec)
+
+    def inliers_to_mask(inliers: np.ndarray) -> np.ndarray:
+        mask = np.zeros(N, dtype=bool)
+        if inliers is not None:
+            mask[inliers.flatten()] = True
+        return mask
+
+    return R_C_W, t_C_W, inliers_to_mask(inliers)
