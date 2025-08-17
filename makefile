@@ -2,6 +2,9 @@
 # I will remove it when we submit.
 include ../build_tools/poetry.mk
 
+test:
+	pytest tests/ -vv
+
 run:
 	python src/main.py
 
