@@ -65,17 +65,26 @@ def get_T_C_W_flat(R_C_W, t_C_W):
     return np.c_[R_C_W, t_C_W].flatten()
 
 
-def filter(p_Points: np.ndarray, mask: np.ndarray):
+def filter(points: np.ndarray | list[np.ndarray], mask: np.ndarray):
     """
-    Keep only points of mask
+    Apply mask to points
 
     Args:
-        - p_Points  np.ndarray(2, N)
-        - mask      np.ndarray(N,)
+        - points  np.ndarray(Any, N) | list[np.ndarray(Any, N)]
+        - mask    np.ndarray(N,)
     """
-    if p_Points.any():
-        return p_Points[:, mask]
-    return p_Points
+    if isinstance(points, list):
+        masked = []
+        for pts in points:
+            if pts.any():
+                masked.append(pts[:, mask])
+            else:
+                masked.append(pts)
+        return masked
+
+    if points.any():
+        return points[:, mask]
+    return points
 
 
 def run_vo(
