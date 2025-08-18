@@ -2,12 +2,12 @@ import cv2
 import numpy as np
 
 from src.image import Image
-from utils.utils_cv2 import from_cv2, to_cv2
+from src.utils.utils_cv2 import from_cv2, to_cv2
 
 KLT_PARAMS = dict(
     winSize=(15, 15),
     maxLevel=2,
-    criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),
+    criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),  # type: ignore
 )
 
 
@@ -27,7 +27,7 @@ def run_klt(image_0: Image, image_1: Image, p0_I_keypoints: np.ndarray):
 
     # calculate optical flow
     p0_I_keypoints_cv2 = to_cv2(p0_I_keypoints)
-    p1_I_keypoints_cv2, status, err = cv2.calcOpticalFlowPyrLK(
+    p1_I_keypoints_cv2, status, err = cv2.calcOpticalFlowPyrLK(  # type: ignore
         image_0.img, image_1.img, p0_I_keypoints_cv2, None, **KLT_PARAMS
     )
 

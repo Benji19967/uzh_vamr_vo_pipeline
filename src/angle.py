@@ -1,3 +1,5 @@
+from typing import cast
+
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
@@ -115,11 +117,11 @@ def plot_angle(x1, x2, K, R1, t1, R2, t2):
 
     # Step 4: Plot
     fig = plt.figure(figsize=(10, 7))
-    ax = fig.add_subplot(111, projection="3d")
+    ax: Axes3D = cast(Axes3D, fig.add_subplot(111, projection="3d"))
 
     # Camera centers
     ax.scatter(*C1, color="blue", label="Camera 1")
-    ax.scatter(*C2, color="green", label="Camera 2")
+    ax.scatter(*C2, color="green", label="Camera 2")  # type: ignore
 
     # Bearing vectors (rays)
     scale = 3
@@ -127,8 +129,8 @@ def plot_angle(x1, x2, K, R1, t1, R2, t2):
     ax.quiver(*C2, *(b2_w * scale), color="green", arrow_length_ratio=0.1)
 
     # Labels
-    ax.text(*C1, "Cam1", color="blue")
-    ax.text(*C2, "Cam2", color="green")
+    ax.text(*C1, "Cam1", color="blue")  # type: ignore
+    ax.text(*C2, "Cam2", color="green")  # type: ignore
 
     # Compute angle between the two world-frame rays
     dot = np.dot(b1_w, b2_w)
@@ -137,9 +139,9 @@ def plot_angle(x1, x2, K, R1, t1, R2, t2):
 
     # Plot formatting
     ax.set_title(f"Angle Between Bearing Vectors: {angle_deg:.2f}°")
-    ax.set_xlim([-1, 5])
-    ax.set_ylim([-2, 2])
-    ax.set_zlim([-1, 5])
+    ax.set_xlim3d([-1, 5])
+    ax.set_ylim3d([-2, 2])
+    ax.set_zlim3d([-1, 5])
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")

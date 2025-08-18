@@ -1,10 +1,13 @@
 from functools import wraps
 from pathlib import Path
 from time import time
+from typing import Any
 
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
+
+cv2: Any  # supresses pyright type hint errors
 
 MAX_LENGTH_IMAGE = 1920
 

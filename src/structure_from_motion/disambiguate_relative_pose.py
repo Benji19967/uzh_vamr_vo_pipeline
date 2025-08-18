@@ -1,6 +1,6 @@
 import numpy as np
 
-from structure_from_motion.linear_triangulation import linear_triangulation
+from src.structure_from_motion.linear_triangulation import linear_triangulation
 
 
 def disambiguateRelativePose(Rots, u3, p1_I_hom, p2_I_hom, K1, K2):
@@ -27,6 +27,7 @@ def disambiguateRelativePose(Rots, u3, p1_I_hom, p2_I_hom, K1, K2):
     # Projection matrix of camera 1
     M1 = K1 @ np.eye(3, 4)
 
+    R, T = None, None
     max_points_in_front = 0
     for iRot in range(2):
         R_C2_C1_test = Rots[:, :, iRot]
@@ -51,4 +52,5 @@ def disambiguateRelativePose(Rots, u3, p1_I_hom, p2_I_hom, K1, K2):
                 T = T_C2_C1_test
                 max_points_in_front = total_points_in_front
 
+    assert R is not None and T is not None
     return R, T

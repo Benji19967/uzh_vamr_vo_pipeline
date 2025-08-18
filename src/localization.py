@@ -49,6 +49,7 @@ def ransacLocalization(
     max_num_inliers_history = []
     num_iteration_history = []
     max_num_inliers = 0
+    M_C_W_guess = None
 
     # RANSAC
     for _ in range(NUM_ITERATIONS):
@@ -91,9 +92,9 @@ def ransacLocalization(
         #     K,
         # )
 
-        M_C_W = M_C_W_guess
-        R_C_W = M_C_W[:, :3]
-        t_C_W = M_C_W[:, -1]
+        assert M_C_W_guess is not None
+        R_C_W = M_C_W_guess[:, :3]
+        t_C_W = M_C_W_guess[:, -1]
 
     return (
         R_C_W,
@@ -123,16 +124,16 @@ def ransacLocalizationCV2(
     """
     N = p_I_keypoints.shape[1]
     dist_coeffs = np.zeros((4, 1))
-    success, rvec, t_C_W, inliers = cv2.solvePnPRansac(
+    success, rvec, t_C_W, inliers = cv2.solvePnPRansac(  # type: ignore
         objectPoints=p_W_landmarks.T.reshape(-1, 1, 3),
         imagePoints=p_I_keypoints.T.reshape(-1, 1, 2),
         cameraMatrix=K,
         distCoeffs=dist_coeffs,
         reprojectionError=8.0,
         confidence=0.99,
-        flags=cv2.SOLVEPNP_ITERATIVE,
+        flags=cv2.SOLVEPNP_ITERATIVE,  # type: ignore
     )
-    R_C_W, _ = cv2.Rodrigues(rvec)
+    R_C_W, _ = cv2.Rodrigues(rvec)  # type: ignore
 
     def inliers_to_mask(inliers: np.ndarray) -> np.ndarray:
         mask = np.zeros(N, dtype=bool)

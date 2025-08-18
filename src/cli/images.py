@@ -2,7 +2,7 @@ from pathlib import Path
 
 import typer
 
-from src.features import HarrisScores, Keypoints
+from src.features.features import HarrisScores, Keypoints
 from src.image import Image
 from src.utils import utils
 

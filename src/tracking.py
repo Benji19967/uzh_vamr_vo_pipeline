@@ -5,18 +5,18 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-import plot
-from features import keypoints
-from features.features_cv2 import good_features_to_track
-from image import Image
-from klt import run_klt
-from localization import ransacLocalization, ransacLocalizationCV2
+import src.plot as plot
 from src.angle import compute_bearing_angles_with_translation, plot_angle
+from src.features import keypoints
+from src.features.features_cv2 import good_features_to_track
+from src.image import Image
+from src.klt import run_klt
+from src.localization import ransacLocalization, ransacLocalizationCV2
+from src.structure_from_motion import sfm
 from src.structure_from_motion.linear_triangulation import (
     linear_triangulation,
     reprojection_error,
 )
-from structure_from_motion import sfm
 
 np.set_printoptions(suppress=True)
 
@@ -65,26 +65,36 @@ def get_T_C_W_flat(R_C_W, t_C_W):
     return np.c_[R_C_W, t_C_W].flatten()
 
 
-def filter(points: np.ndarray | list[np.ndarray], mask: np.ndarray):
+def filter(points: np.ndarray, mask: np.ndarray):
     """
     Apply mask to points
 
     Args:
-        - points  np.ndarray(Any, N) | list[np.ndarray(Any, N)]
+        - points  np.ndarray(Any, N)
         - mask    np.ndarray(N,)
     """
-    if isinstance(points, list):
-        masked = []
-        for pts in points:
-            if pts.any():
-                masked.append(pts[:, mask])
-            else:
-                masked.append(pts)
-        return masked
 
     if points.any():
         return points[:, mask]
     return points
+
+
+# def filter_many(points: list[np.ndarray], mask: np.ndarray):
+#     """
+#     Apply mask to list of points
+#
+#     Args:
+#         - points  list[np.ndarray(Any, N)]
+#         - mask    np.ndarray(N,)
+#     """
+#     if isinstance(points, list):
+#         masked = []
+#         for pts in points:
+#             if pts.any():
+#                 masked.append(pts[:, mask])
+#             else:
+#                 masked.append(pts)
+#         return masked
 
 
 def run_vo(
@@ -147,6 +157,9 @@ def run_vo(
             camera_position = -R_C_W @ t_C_W
             print("CAMERA POSITION")
             print(camera_position)
+        else:
+            # TODO: Make sure this is correct behaviour
+            continue
 
         print("REPROJECTION ERROR INIT")
         # reproj_error = reprojection_error(
