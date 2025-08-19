@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def apply_mask(points: np.ndarray, mask: np.ndarray):
+def apply_mask(points: np.ndarray, mask: np.ndarray) -> np.ndarray:
     """
     Apply mask to points if points are not empty.
 

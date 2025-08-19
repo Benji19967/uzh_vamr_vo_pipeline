@@ -40,11 +40,8 @@ def initialize_state(
     """
     P0 = p_I_keypoints_initial
     X0 = p_W_landmarks_initial
-    # C0 = np.zeros((2, 0), dtype=np.int32)
     C1 = np.zeros((2, 0), dtype=np.int32)
-    # F0 = np.zeros((2, 0), dtype=np.int32)
     F1 = np.zeros((2, 0), dtype=np.int32)
-    # T0 = np.zeros((12, 0), dtype=np.int32)
     T1 = np.zeros((12, 0), dtype=np.int32)
 
     return P0, X0, C1, F1, T1

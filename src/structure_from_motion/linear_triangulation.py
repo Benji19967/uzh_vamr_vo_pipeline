@@ -1,6 +1,6 @@
 import numpy as np
 
-from structure_from_motion.utils import cross2Matrix
+from src.structure_from_motion.utils import cross2Matrix
 
 
 def reprojection_error(
