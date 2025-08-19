@@ -17,6 +17,7 @@ from src.structure_from_motion.linear_triangulation import (
     linear_triangulation,
     reprojection_error,
 )
+from src.utils import points
 
 np.set_printoptions(suppress=True)
 
@@ -84,16 +85,13 @@ def run_vo(
 
     for image_0, image_1 in zip(images, images[1:]):
         P1, status_mask = run_klt(image_0, image_1, P1)
-        P1 = filter(P1, status_mask)
-        X1 = filter(X1, status_mask)
+        P1, X1 = points.apply_mask_many([P1, X1], status_mask)
 
         C0 = C1
         C1, status_mask_candiate_kps = run_klt(image_0, image_1, C1)
-        C0 = filter(C0, status_mask_candiate_kps)
-        C1 = filter(C1, status_mask_candiate_kps)
-        F1 = filter(F1, status_mask_candiate_kps)
-        T1 = filter(T1, status_mask_candiate_kps)
-
+        C0, C1, F1, T1 = points.apply_mask_many(
+            [C0, C1, F1, T1], status_mask_candiate_kps
+        )
         print("After KLT")
         print(f"P1: {P1.shape}")
         print(f"X1: {X1.shape}")
@@ -109,8 +107,7 @@ def run_vo(
         #     [P1[:, best_inlier_mask], P1[:, ~best_inlier_mask]],
         #     fmt=["gx", "rx"],
         # )
-        X1 = filter(X1, best_inlier_mask)
-        P1 = filter(P1, best_inlier_mask)
+        P1, X1 = points.apply_mask_many([P1, X1], best_inlier_mask)
 
         print("After RANSAC")
         print(f"P1: {P1.shape}")
@@ -236,25 +233,25 @@ def run_vo(
 
             P1 = np.c_[
                 P1,
-                filter(
+                points.apply_mask(
                     C1[:, status_mask_candidate_landmarks], best_inlier_mask_candidates
                 ),
                 # C1[:, status_mask_candidate_landmarks],
             ]
             X1 = np.c_[
                 X1,
-                filter(
+                points.apply_mask(
                     p_W_hom_new_landmarks[:3, status_mask_candidate_landmarks],
                     best_inlier_mask_candidates,
                 ),
                 # p_W_hom_new_landmarks[:3, status_mask_candidate_landmarks],
             ]
             reproj_error = reprojection_error(
-                p_W_hom=filter(
+                p_W_hom=points.apply_mask(
                     p_W_hom_new_landmarks[:, status_mask_candidate_landmarks],
                     best_inlier_mask_candidates,
                 ),
-                p_I=filter(
+                p_I=points.apply_mask(
                     C1[:, status_mask_candidate_landmarks], best_inlier_mask_candidates
                 ),
                 T_C_W=T_C_W,
