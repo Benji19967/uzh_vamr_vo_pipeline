@@ -79,11 +79,11 @@ def run_vo(
     P1, X1, C1, F1, T1 = initialize_state(p_I_keypoints_initial, p_W_landmarks_initial)
 
     for image_0, image_1 in zip(images, images[1:]):
-        P1, status_mask = run_klt(image_0, image_1, P1)
+        P1, status_mask = run_klt(image_0.img, image_1.img, P1)
         P1, X1 = points.apply_mask_many([P1, X1], status_mask)
 
         C0 = C1
-        C1, status_mask_candiate_kps = run_klt(image_0, image_1, C1)
+        C1, status_mask_candiate_kps = run_klt(image_0.img, image_1.img, C1)
         C0, C1, F1, T1 = points.apply_mask_many(
             [C0, C1, F1, T1], status_mask_candiate_kps
         )

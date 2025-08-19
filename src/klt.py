@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 
-from src.image import Image
 from src.utils.points import from_cv2, to_cv2
 
 KLT_PARAMS = dict(
@@ -11,7 +10,7 @@ KLT_PARAMS = dict(
 )
 
 
-def run_klt(image_0: Image, image_1: Image, p0_I_keypoints: np.ndarray):
+def run_klt(image_0: np.ndarray, image_1: np.ndarray, p0_I_keypoints: np.ndarray):
     """
     Run KLT on the images: track keypoints from image_0 to image_1
 
@@ -28,7 +27,7 @@ def run_klt(image_0: Image, image_1: Image, p0_I_keypoints: np.ndarray):
     # calculate optical flow
     p0_I_keypoints_cv2 = to_cv2(p0_I_keypoints)
     p1_I_keypoints_cv2, status, err = cv2.calcOpticalFlowPyrLK(  # type: ignore
-        image_0.img, image_1.img, p0_I_keypoints_cv2, None, **KLT_PARAMS
+        image_0, image_1, p0_I_keypoints_cv2, None, **KLT_PARAMS
     )
 
     def from_cv2_status(st):
