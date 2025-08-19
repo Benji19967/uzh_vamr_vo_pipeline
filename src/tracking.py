@@ -13,10 +13,8 @@ from src.image import Image
 from src.klt import run_klt
 from src.localization import ransacLocalization, ransacLocalizationCV2
 from src.structure_from_motion import sfm
-from src.structure_from_motion.linear_triangulation import (
-    linear_triangulation,
-    reprojection_error,
-)
+from src.structure_from_motion.linear_triangulation import linear_triangulation
+from src.structure_from_motion.reprojection_error import reprojection_error
 from src.utils import points
 
 np.set_printoptions(suppress=True)

@@ -1,9 +1,7 @@
 import numpy as np
 
-from src.structure_from_motion.linear_triangulation import (
-    linear_triangulation,
-    reprojection_error,
-)
+from src.structure_from_motion.linear_triangulation import linear_triangulation
+from src.structure_from_motion.reprojection_error import reprojection_error
 
 
 def test_linear_triangulation_multiple_points():
@@ -52,7 +50,7 @@ def test_linear_triangulation_multiple_points():
     np.testing.assert_array_almost_equal(p_W_hom, p_W_hom_expected)
 
 
-def test_reprojection_error_zero_error():
+def test_reprojection_error():
     # 3D points
     p_W_hom = np.array(
         [

@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from src.image import Image
-from src.utils.utils_cv2 import from_cv2, to_cv2
+from src.utils.points import from_cv2, to_cv2
 
 KLT_PARAMS = dict(
     winSize=(15, 15),
