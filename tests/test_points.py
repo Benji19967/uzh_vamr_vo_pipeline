@@ -124,3 +124,40 @@ def test_from_cv2_empty():
     expected = np.empty((2, 0), dtype=np.float32)
     assert np.array_equal(result, expected)
     assert result.shape == (2, 0)
+
+
+def test_compute_bearing_angles_with_translation():
+    p_I_1 = np.array(
+        [
+            [0, 0, 0],
+            [0, 0, 0],
+        ]
+    )
+    p_I_2 = np.array(
+        [
+            [0, 1, 1],
+            [0, 1, 1],
+        ]
+    )
+    pose = np.array(
+        [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+        ]
+    )
+    poses_A = np.empty((12, 3))
+    poses_A[:, 0] = pose.flatten()
+    poses_A[:, 1] = pose.flatten()
+    poses_A[:, 2] = pose.flatten()
+    T_C_W = np.eye(3, 4)
+    K = np.eye(3)
+
+    angles_deg_expected = np.array([0.0, 54.74, 54.74])
+    mask_angle_expected = np.array([False, True, True])
+
+    _, angles_deg, mask_angle = points.compute_bearing_angles_with_translation(
+        p_I_1=p_I_1, p_I_2=p_I_2, poses_A=poses_A, T_C_W=T_C_W, K=K, min_angle=5.0
+    )
+    assert np.allclose(angles_deg, angles_deg_expected, atol=1e-2)
+    assert np.array_equal(mask_angle, mask_angle_expected)

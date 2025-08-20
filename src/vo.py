@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import src.utils.plot as plot
-from src.angle import compute_bearing_angles_with_translation, plot_angle
 from src.features import keypoints
 from src.features.features_cv2 import good_features_to_track
 from src.image import Image
@@ -16,6 +15,7 @@ from src.structure_from_motion import sfm
 from src.structure_from_motion.linear_triangulation import linear_triangulation
 from src.structure_from_motion.reprojection_error import reprojection_error
 from src.utils import points
+from src.utils.points import compute_bearing_angles_with_translation
 
 np.set_printoptions(suppress=True)
 
@@ -88,26 +88,23 @@ def run_vo(
             [C0, C1, F1, T1], status_mask_candiate_kps
         )
         print("After KLT")
-        print(f"P1: {P1.shape}")
-        print(f"X1: {X1.shape}")
-        print(f"C1: {C1.shape}")
+        print(f"P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
         R_C_W, t_C_W, best_inlier_mask = ransacLocalizationCV2(
-            p_I_keypoints=P1,
-            p_W_landmarks=X1,
-            K=K,
+            p_I_keypoints=P1, p_W_landmarks=X1, K=K
         )
+        P1, X1 = points.apply_mask_many([P1, X1], best_inlier_mask)
+
+        # region Plotting
         # plot.plot_keypoints(
         #     image_1.img,
         #     [P1[:, best_inlier_mask], P1[:, ~best_inlier_mask]],
         #     fmt=["gx", "rx"],
         # )
-        P1, X1 = points.apply_mask_many([P1, X1], best_inlier_mask)
+        # endregion
 
         print("After RANSAC")
-        print(f"P1: {P1.shape}")
-        print(f"X1: {X1.shape}")
-        print(f"C1: {C1.shape}")
+        print(f"P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
         if R_C_W is not None:
             T_C_W_flat = get_T_C_W_flat(R_C_W, t_C_W)
@@ -147,19 +144,15 @@ def run_vo(
                 np.tile(T_C_W_flat, (num_new_candidate_keypoints, 1)).T,
             ]
 
+        # region Plotting
         # plot.plot_keypoints(img=image_1.img, p_I_keypoints=[P1, C1], fmt=["rx", "gx"])
         # plot.plot_keypoints(img=image_1.img, p_I_keypoints=P1, fmt="rx")
+        # endregion
 
         if F1.any():
             _, angles_deg, mask_angle = compute_bearing_angles_with_translation(
-                p_I_1=F1,
-                p_I_2=C1,
-                poses_A=T1,
-                T_C_W=T_C_W_flat,
-                K=K,
+                p_I_1=F1, p_I_2=C1, poses_A=T1, T_C_W=T_C_W_flat, K=K
             )
-            # print(angles_deg)
-            # print(mask_angle)
 
             # TODO: points where mask True --> triangulate
             # C1_to_triangulate = C1[:, mask_angle]
