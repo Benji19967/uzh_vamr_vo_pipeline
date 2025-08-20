@@ -2,7 +2,7 @@ import numpy as np
 
 from features.keypoints import get_keypoint_correspondences
 from image import Image
-from localization import ransacLocalization
+from src.localization.localization import ransacLocalization
 from structure_from_motion import sfm
 
 MAX_NUM_KEYPOINTS = 1000

@@ -1,6 +1,6 @@
 import numpy as np
 
-import tracking
+import src.vo as vo
 from src.initialize import initialize
 from src.utils.image_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
 
@@ -26,7 +26,7 @@ def main() -> None:
     p1_I_keypoints, _, p_W_landmarks = initialize(image_0, image_1, K=K_PARKING)
 
     images = ParkingDataReader.read_images(end_id=100)
-    tracking.run_vo(
+    vo.run_vo(
         images=images,
         p_I_keypoints_initial=p1_I_keypoints,
         p_W_landmarks_initial=p_W_landmarks,

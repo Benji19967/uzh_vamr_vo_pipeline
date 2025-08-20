@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-from estimate_pose_dlt import estimatePoseDLT
-from transformations import camera_to_pixel, world_to_camera
+from src.localization.estimate_pose_dlt import estimatePoseDLT
+from src.transformations.transformations import camera_to_pixel, world_to_camera
 
 NUM_ITERATIONS = 2000
 PIXEL_TOLERANCE = 10
