@@ -80,7 +80,8 @@ def run_vo(
     """
     P1, X1, C1, F1, T1 = initialize_state(p_I_keypoints_initial, p_W_landmarks_initial)
 
-    for image_0, image_1 in zip(images, images[1:]):
+    for i, (image_0, image_1) in enumerate(zip(images, images[1:])):
+        print(i)
         P1, status_mask = run_klt(image_0.img, image_1.img, P1)
         P1, X1 = points.apply_mask_many([P1, X1], status_mask)
 
@@ -89,8 +90,7 @@ def run_vo(
         C0, C1, F1, T1 = points.apply_mask_many(
             [C0, C1, F1, T1], status_mask_candiate_kps
         )
-        print("After KLT")
-        print(f"P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
+        print(f"After KLT: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
         R_C_W, t_C_W, best_inlier_mask = ransacLocalizationCV2(
             p_I_keypoints=P1, p_W_landmarks=X1, K=K
@@ -105,8 +105,7 @@ def run_vo(
         # )
         # endregion
 
-        print("After RANSAC")
-        print(f"P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
+        print(f"After RAN: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
         if R_C_W is not None:
             T_C_W_flat = get_T_C_W_flat(R_C_W, t_C_W)
@@ -114,13 +113,12 @@ def run_vo(
             print("POSE")
             print(T_C_W)
             camera_position = -R_C_W @ t_C_W
-            print("CAMERA POSITION")
-            print(camera_position)
+            print(f"CAMERA POSITION: {camera_position.flatten()}")
         else:
             # TODO: Make sure this is correct behaviour
             continue
 
-        print("REPROJECTION ERROR INIT")
+        # print("REPROJECTION ERROR INIT")
         # reproj_error = reprojection_error(
         #     p_W_hom=np.r_[X1, np.ones((1, X1.shape[1]))],
         #     p_I=P1,
@@ -166,6 +164,7 @@ def run_vo(
                     T_C_W=T_C_W,
                     K=K,
                     mask_to_triangulate=mask_to_triangulate,
+                    max_reproj_error=5,
                 )
             )
             C1_triangulated = points.apply_mask(C1, mask_successful_triangulation)
@@ -205,12 +204,12 @@ def run_vo(
                     K=K,
                 )
 
-                print("After adding new landmarks")
-                print("Num new candidate keypoints: ", num_new_candidate_keypoints)
+                # print("After adding new landmarks")
+                # print("Num new candidate keypoints: ", num_new_candidate_keypoints)
                 # print("Num new landmarks added: ", best_inlier_mask_candidates.sum())
-                print(f"P1: {P1.shape}")
-                print(f"X1: {X1.shape}")
-                print(f"C1: {C1.shape}")
+                # print(f"P1: {P1.shape}")
+                # print(f"X1: {X1.shape}")
+                # print(f"C1: {C1.shape}")
 
         # region Plotting
         # plot.plot_tracking(
