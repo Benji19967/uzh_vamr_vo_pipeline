@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 
-from src.utils.utils_cv2 import from_cv2
+from src.utils.points import from_cv2
 
 
 def good_features_to_track(img: np.ndarray, max_features: int):

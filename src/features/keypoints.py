@@ -1,8 +1,8 @@
 import numpy as np
 
-from features.features import Descriptors
-from image import Image
+from src.features.features import Descriptors
 from src.features.features_cv2 import good_features_to_track
+from src.image import Image
 
 
 def find_keypoints(

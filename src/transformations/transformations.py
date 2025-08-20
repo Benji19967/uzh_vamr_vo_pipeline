@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.distort_points import distort_points
+from src.transformations.distort_points import distort_points
 
 
 def world_to_camera(

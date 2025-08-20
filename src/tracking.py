@@ -5,13 +5,13 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-import src.plot as plot
+import src.utils.plot as plot
 from src.angle import compute_bearing_angles_with_translation, plot_angle
 from src.features import keypoints
 from src.features.features_cv2 import good_features_to_track
 from src.image import Image
 from src.klt import run_klt
-from src.localization import ransacLocalization, ransacLocalizationCV2
+from src.localization.localization import ransacLocalization, ransacLocalizationCV2
 from src.structure_from_motion import sfm
 from src.structure_from_motion.linear_triangulation import linear_triangulation
 from src.structure_from_motion.reprojection_error import reprojection_error

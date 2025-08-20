@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.transformations import world_to_camera
+from src.transformations.transformations import world_to_camera
 
 
 def test_world_to_camera_identity_transformation():
