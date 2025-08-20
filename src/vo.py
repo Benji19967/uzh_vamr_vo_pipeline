@@ -24,6 +24,9 @@ np.set_printoptions(suppress=True)
 # TODO: add a note about notation / documentation regarding (x,y) vs (y,x)
 
 MAX_NUM_NEW_CANDIDATE_KEYPOINTS = 1000
+MAX_REPROJECTION_ERROR = 5
+MIN_ANGLE_TO_TRIANGULATE = 5.0  # degrees
+KEYFRAME_INTERVAL = 5  # Process every 5th image as a keyframe
 
 
 def initialize_state(
@@ -80,6 +83,7 @@ def run_vo(
     """
     P1, X1, C1, F1, T1 = initialize_state(p_I_keypoints_initial, p_W_landmarks_initial)
 
+    camera_positions = []
     for i, (image_0, image_1) in enumerate(zip(images, images[1:])):
         print(i)
         P1, status_mask = run_klt(image_0.img, image_1.img, P1)
@@ -113,24 +117,24 @@ def run_vo(
             print("POSE")
             print(T_C_W)
             camera_position = -R_C_W @ t_C_W
+            camera_positions.append(camera_position)
             print(f"CAMERA POSITION: {camera_position.flatten()}")
         else:
             # TODO: Make sure this is correct behaviour
             continue
 
-        # print("REPROJECTION ERROR INIT")
-        # reproj_error = reprojection_error(
-        #     p_W_hom=np.r_[X1, np.ones((1, X1.shape[1]))],
-        #     p_I=P1,
-        #     T_C_W=T_C_W,
-        #     K=K,
-        # )
-        # print(reproj_error)
-        # if reproj_error > 100:
-        #     print(X1[:, 0])
+        print("REPROJECTION ERROR LANDMARKS")
+        reproj_error = reprojection_error(
+            p_W_hom=np.r_[X1, np.ones((1, X1.shape[1]))],
+            p_I=P1,
+            T_C_W=T_C_W,
+            K=K,
+        )
+        print(reproj_error)
 
         # Add new candidate keypoints
-        if C1.shape[1] < 200:
+        # if C1.shape[1] < 200:
+        if i % KEYFRAME_INTERVAL == 0:
             C1_new, num_new_candidate_keypoints = keypoints.find_keypoints(
                 img=image_1.img,
                 max_keypoints=MAX_NUM_NEW_CANDIDATE_KEYPOINTS,
@@ -144,17 +148,22 @@ def run_vo(
             ]
 
         # region Plotting
-        # plot.plot_keypoints(img=image_1.img, p_I_keypoints=[P1, C1], fmt=["rx", "gx"])
-        # plot.plot_keypoints(img=image_1.img, p_I_keypoints=P1, fmt="rx")
+        plot.plot_keypoints(img=image_1.img, p_I_keypoints=[P1, C1], fmt=["rx", "gx"])
         # endregion
 
         # Add new landmarks
-        if F1.any():
+        if F1.any() and i % KEYFRAME_INTERVAL == 0:
             _, _, mask_to_triangulate = compute_bearing_angles_with_translation(
-                p_I_1=F1, p_I_2=C1, poses_A=T1, T_C_W=T_C_W_flat, K=K, min_angle=5.0
+                p_I_1=F1,
+                p_I_2=C1,
+                poses_A=T1,
+                T_C_W=T_C_W_flat,
+                K=K,
+                min_angle=MIN_ANGLE_TO_TRIANGULATE,
             )
 
-            # plot.plot_landmarks_top_view(p_W=X1)
+            plot.plot_landmarks_top_view(p_W=X1, camera_positions=camera_positions)
+            print(f"Successful triangulation: {mask_to_triangulate.sum()}")
 
             p_W_hom_new_landmarks, mask_successful_triangulation = (
                 triangulate_landmarks(
@@ -164,7 +173,7 @@ def run_vo(
                     T_C_W=T_C_W,
                     K=K,
                     mask_to_triangulate=mask_to_triangulate,
-                    max_reproj_error=5,
+                    max_reprojection_error=MAX_REPROJECTION_ERROR,
                 )
             )
             C1_triangulated = points.apply_mask(C1, mask_successful_triangulation)
@@ -180,6 +189,7 @@ def run_vo(
                     p_W_landmarks=p_W_hom_new_landmarks[:3, :],
                     K=K,
                 )
+                print(f"Successful ransac inliers: {best_inlier_mask_ransac.sum()}")
                 C1_triangulated_inliers, p_W_hom_new_landmarks_inliers = (
                     points.apply_mask_many(
                         [C1_triangulated, p_W_hom_new_landmarks],
@@ -197,12 +207,12 @@ def run_vo(
                 F1 = F1[:, ~mask_new_landmarks]
                 T1 = T1[:, ~mask_new_landmarks]
 
-                reproj_error = reprojection_error(
-                    p_W_hom=p_W_hom_new_landmarks_inliers,
-                    p_I=C1_triangulated_inliers,
-                    T_C_W=T_C_W,
-                    K=K,
-                )
+                # reproj_error_new_landmarks = reprojection_error(
+                #     p_W_hom=p_W_hom_new_landmarks_inliers,
+                #     p_I=C1_triangulated_inliers,
+                #     T_C_W=T_C_W,
+                #     K=K,
+                # )
 
                 # print("After adding new landmarks")
                 # print("Num new candidate keypoints: ", num_new_candidate_keypoints)
@@ -211,7 +221,7 @@ def run_vo(
                 # print(f"X1: {X1.shape}")
                 # print(f"C1: {C1.shape}")
 
-        # region Plotting
+        # region Plot Tracking/KLT
         # plot.plot_tracking(
         #     I0_keypoints=C0,
         #     I1_keypoints=C1,

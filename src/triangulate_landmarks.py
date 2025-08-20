@@ -12,7 +12,7 @@ def triangulate_landmarks(
     T_C_W: np.ndarray,
     K: np.ndarray,
     mask_to_triangulate: np.ndarray,
-    max_reproj_error: int = 2,
+    max_reprojection_error: int = 5,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Triangulate landmarks from two sets of keypoints and camera poses.
@@ -24,6 +24,7 @@ def triangulate_landmarks(
         T_C_W (np.ndarray) (3, 4): Camera pose for the second image in world coordinates.
         K (np.ndarray) (3, 3): Camera intrinsic matrix.
         mask_to_triangulate (np.ndarray) (N,): Boolean mask indicating which keypoints to triangulate.
+        max_reprojection_error (int): Maximum allowed reprojection error for a successful triangulation.
 
     Returns:
         p_W_hom_new_landmarks (np.ndarray) (4, T): Homogeneous coordinates of the triangulated landmarks.
@@ -52,7 +53,9 @@ def triangulate_landmarks(
                 T_C_W=T_C_W,
                 K=K,
             )
-            if error <= max_reproj_error and p_W_hom_landmark[2, 0] > 0:  # z-value:
+            if (
+                error <= max_reprojection_error and p_W_hom_landmark[2, 0] > 0
+            ):  # z-value:
                 mask_successful_triangulation.append(True)
                 p_W_hom_new_landmarks[:, i] = p_W_hom_landmark[:, 0]
             else:

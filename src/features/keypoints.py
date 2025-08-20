@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.features.features import Descriptors
-from src.features.features_cv2 import good_features_to_track
+from src.features.features_cv2 import good_features_grid, good_features_to_track
 from src.image import Image
 
 
@@ -20,7 +20,8 @@ def find_keypoints(
      - p_I_new_keypoints np.ndarray(2, N)
      - num_new_candidate_keypoints
     """
-    p_I_new_keypoints = good_features_to_track(img=img, max_features=max_keypoints)
+    # p_I_new_keypoints = good_features_to_track(img=img, max_features=max_keypoints)
+    p_I_new_keypoints = good_features_grid(img=img, max_features=max_keypoints)
 
     # Remove keypoints that are already found
     if exclude:

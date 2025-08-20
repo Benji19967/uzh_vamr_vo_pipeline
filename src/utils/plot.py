@@ -37,10 +37,15 @@ def plot_tracking(
     plt.show()
 
 
-def plot_landmarks_top_view(p_W: np.ndarray, fmt="bx") -> None:
+def plot_landmarks_top_view(
+    p_W: np.ndarray, fmt="bx", camera_positions: list[np.ndarray] | None = None
+) -> None:
     plt.clf()
     plt.close()
     plt.plot(p_W[0, :], p_W[2, :], fmt)
+    if camera_positions is not None:
+        for camera_position in camera_positions[-20:]:
+            plt.plot(camera_position[0], camera_position[2], "rx")
     plt.show()
 
 
