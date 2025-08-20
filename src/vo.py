@@ -16,6 +16,7 @@ from src.structure_from_motion.linear_triangulation import linear_triangulation
 from src.structure_from_motion.reprojection_error import reprojection_error
 from src.triangulate_landmarks import triangulate_landmarks
 from src.utils import points
+from src.utils.masks import compose_masks
 from src.utils.points import compute_bearing_angles_with_translation
 
 np.set_printoptions(suppress=True)
@@ -130,14 +131,13 @@ def run_vo(
         # if reproj_error > 100:
         #     print(X1[:, 0])
 
-        C1_new, num_new_candidate_keypoints = keypoints.find_keypoints(
-            img=image_1.img,
-            max_keypoints=MAX_NUM_NEW_CANDIDATE_KEYPOINTS,
-            exclude=[C1, P1],
-        )
-
+        # Add new candidate keypoints
         if C1.shape[1] < 200:
-            # keep new candidate keypoints
+            C1_new, num_new_candidate_keypoints = keypoints.find_keypoints(
+                img=image_1.img,
+                max_keypoints=MAX_NUM_NEW_CANDIDATE_KEYPOINTS,
+                exclude=[C1, P1],
+            )
             C1 = np.c_[C1, C1_new]
             F1 = np.c_[F1, C1_new]
             T1 = np.c_[
@@ -150,6 +150,7 @@ def run_vo(
         # plot.plot_keypoints(img=image_1.img, p_I_keypoints=P1, fmt="rx")
         # endregion
 
+        # Add new landmarks
         if F1.any():
             _, _, mask_to_triangulate = compute_bearing_angles_with_translation(
                 p_I_1=F1, p_I_2=C1, poses_A=T1, T_C_W=T_C_W_flat, K=K, min_angle=5.0
@@ -167,19 +168,15 @@ def run_vo(
                     mask_to_triangulate=mask_to_triangulate,
                 )
             )
-            C1_triangulated, F1_triangulated, T1_triangulated = points.apply_mask_many(
-                [C1, F1, T1],
-                mask_successful_triangulation,
-            )
+            C1_triangulated = points.apply_mask(C1, mask_successful_triangulation)
 
-            # print("XXXXXXXXXXXXXXXX")
-            # print(X1)
-            # print(p_W_hom_landmark)
             # plot.plot_landmarks_top_view(p_W_hom_new_landmarks, "yx")
 
-            best_inlier_mask_candidates = np.full(sum(status_landmarks), False)
+            best_inlier_mask_ransac = np.full(
+                mask_successful_triangulation.sum(), False
+            )
             if C1.any() and mask_successful_triangulation.sum() >= 4:
-                _, _, best_inlier_mask_candidates = ransacLocalizationCV2(
+                _, _, best_inlier_mask_ransac = ransacLocalizationCV2(
                     p_I_keypoints=C1_triangulated,
                     p_W_landmarks=p_W_hom_new_landmarks[:3, :],
                     K=K,
@@ -187,29 +184,33 @@ def run_vo(
                 C1_triangulated_inliers, p_W_hom_new_landmarks_inliers = (
                     points.apply_mask_many(
                         [C1_triangulated, p_W_hom_new_landmarks],
-                        best_inlier_mask_candidates,
+                        best_inlier_mask_ransac,
                     )
                 )
 
-            P1 = np.c_[P1, C1_triangulated_inliers]
-            X1 = np.c_[X1, p_W_hom_new_landmarks_inliers[:3, :]]
-            reproj_error = reprojection_error(
-                p_W_hom=p_W_hom_new_landmarks_inliers,
-                p_I=C1_triangulated_inliers,
-                T_C_W=T_C_W,
-                K=K,
-            )
+                mask_new_landmarks = compose_masks(
+                    mask_successful_triangulation, best_inlier_mask_ransac
+                )
 
-            C1 = C1[:, ~mask_successful_triangulation]
-            F1 = F1[:, ~mask_successful_triangulation]
-            T1 = T1[:, ~mask_successful_triangulation]
+                P1 = np.c_[P1, C1_triangulated_inliers]
+                X1 = np.c_[X1, p_W_hom_new_landmarks_inliers[:3, :]]
+                C1 = C1[:, ~mask_new_landmarks]
+                F1 = F1[:, ~mask_new_landmarks]
+                T1 = T1[:, ~mask_new_landmarks]
 
-            print("After adding new landmarks")
-            print("Num new candidate keypoints: ", num_new_candidate_keypoints)
-            # print("Num new landmarks added: ", best_inlier_mask_candidates.sum())
-            print(f"P1: {P1.shape}")
-            print(f"X1: {X1.shape}")
-            print(f"C1: {C1.shape}")
+                reproj_error = reprojection_error(
+                    p_W_hom=p_W_hom_new_landmarks_inliers,
+                    p_I=C1_triangulated_inliers,
+                    T_C_W=T_C_W,
+                    K=K,
+                )
+
+                print("After adding new landmarks")
+                print("Num new candidate keypoints: ", num_new_candidate_keypoints)
+                # print("Num new landmarks added: ", best_inlier_mask_candidates.sum())
+                print(f"P1: {P1.shape}")
+                print(f"X1: {X1.shape}")
+                print(f"C1: {C1.shape}")
 
         # region Plotting
         # plot.plot_tracking(
