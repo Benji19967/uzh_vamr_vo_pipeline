@@ -19,6 +19,9 @@ def good_features_to_track(img: np.ndarray, max_features: int):
     corners = cv.goodFeaturesToTrack(  # type: ignore
         img, max_features, R_min, min_euclidean_distance_between_corners
     )
+    if corners is None:
+        return np.zeros((2, 0), dtype=np.int16)
+
     corners = np.int0(corners)
     p_I_corners = from_cv2(corners)  # type: ignore
 
