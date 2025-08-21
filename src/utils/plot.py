@@ -9,21 +9,6 @@ from mpl_toolkits.mplot3d import Axes3D, proj3d
 DPI = 227  # Mac M1
 
 
-# def plot_keypoints(
-#     ax,
-#     img: np.ndarray,
-#     p_I_keypoints: np.ndarray | list[np.ndarray],
-#     fmt: str | list[str] = "rx",
-# ) -> None:
-#     ax.imshow(img, cmap="gray")
-#     if isinstance(p_I_keypoints, list):
-#         for points, f in zip(p_I_keypoints, fmt):
-#             ax.plot(points[0, :], points[1, :], f, linewidth=2)
-#     else:
-#         ax.plot(p_I_keypoints[0, :], p_I_keypoints[1, :], fmt, linewidth=2)
-#     ax.axis("off")
-
-
 def plot_keypoints_cv2(
     img: np.ndarray,
     p_I_keypoints: np.ndarray | list[np.ndarray],
@@ -48,45 +33,6 @@ def plot_landmarks_top_view(
     if camera_positions is not None:
         for camera_position in camera_positions[-20:]:
             ax.plot(camera_position[0], camera_position[2], "rx")
-
-
-# def plot_landmarks_cv2(
-#     p_W: np.ndarray,
-#     camera_positions: list[np.ndarray] | None = None,
-#     output_size: tuple[int, int] = (480, 640),
-#     marker_size: int = 5,
-#     landmark_color: tuple[int, int, int] = (0, 255, 0),
-#     camera_color: tuple[int, int, int] = (0, 255, 0),
-#     thickness: int = 1,
-#     scale: float = 50.0,
-# ):
-#     """
-#     Draws landmarks on a top-down map image.
-
-#     Args:
-#         img (np.ndarray): Image to draw on.
-#         p_W (np.ndarray): (3, N) array of 3D landmark points.
-#         output_size (tuple[int, int]): Size of the output image (height, width).
-#         marker_size (int): Size of the markers.
-#         landmark_color (tuple[int, int, int]): Color of the landmark markers in BGR format.
-#         camera_color (tuple[int, int, int]): Color of the camera markers in BGR format.
-#         thickness (int): Thickness of the marker lines.
-#         scale (float): Pixels per world unit.
-#     """
-#     map_img = draw_topdown_map(
-#         p_W_landmarks=p_W,
-#         camera_positions=camera_positions,
-#         output_size=output_size,
-#         marker_size=marker_size,
-#         landmark_color=landmark_color,
-#         camera_color=camera_color,
-#         thickness=thickness,
-#         scale=scale,
-#     )
-
-#     cv2.imshow("Landmarks", map_img)  # type: ignore
-#     cv2.waitKey(10)  # type: ignore
-#     cv2.destroyAllWindows()  # type: ignore
 
 
 def draw_keypoints(img, p_I_keypoints, marker_size, color, thickness):
@@ -129,115 +75,6 @@ def draw_keypoints(img, p_I_keypoints, marker_size, color, thickness):
     else:
         draw_marker(p_I_keypoints, marker_size, color, thickness)
     return img_out  # type: ignore
-
-
-# def draw_topdown_map(
-#     p_W_landmarks,
-#     camera_positions,
-#     output_size=(480, 640),
-#     marker_size=5,
-#     landmark_color=(0, 255, 0),
-#     camera_color=(255, 255, 0),
-#     thickness=1,
-#     scale=50.0,
-# ):
-#     """
-#     Draws a top-down map of landmarks and camera positions.
-
-#     Args:
-#         p_W_landmarks (np.ndarray): (3, N) array of 3D landmark points.
-#         camera_positions (list of np.ndarray): List of (3,) camera positions.
-#         output_size (tuple): Size of the output image (height, width).
-#         landmark_color (tuple): BGR color for landmarks.
-#         camera_color (tuple): BGR color for camera positions.
-#         thickness (int): Thickness of the marker lines.
-#         scale (float): Pixels per world unit.
-
-#     Returns:
-#         np.ndarray: Top-down map image (BGR).
-#     """
-
-#     H, W = output_size
-#     center_x, center_y = W // 2, H // 2
-
-#     # Create a blank white canvas
-#     map_img = np.ones((H, W, 3), dtype=np.uint8) * 255
-
-#     # --- Draw landmarks ---
-#     if p_W_landmarks.shape[0] == 3:
-#         points = p_W_landmarks.T  # (N, 3)
-#         for pt in points[-20:, :]:
-#             x = int(pt[0] * scale + center_x)
-#             y = int(-pt[2] * scale + center_y)  # top-down: x-z plane
-#             if 0 <= x < W and 0 <= y < H:
-#                 cv2.drawMarker(  # type: ignore
-#                     map_img,
-#                     (int(x), int(y)),
-#                     landmark_color,
-#                     markerType=cv2.MARKER_TILTED_CROSS,  # type: ignore
-#                     markerSize=marker_size,
-#                     thickness=thickness,
-#                     line_type=cv2.LINE_AA,  # type: ignore
-#                 )
-
-#     # --- Draw camera positions ---
-#     for cam_pos in camera_positions[-20:]:
-#         x = int(cam_pos[0] * scale + center_x)
-#         y = int(-cam_pos[2] * scale + center_y)
-#         if 0 <= x < W and 0 <= y < H:
-#             cv2.drawMarker(  # type: ignore
-#                 map_img,
-#                 (int(x), int(y)),
-#                 camera_color,
-#                 markerType=cv2.MARKER_TILTED_CROSS,  # type: ignore
-#                 markerSize=marker_size,
-#                 thickness=thickness,
-#                 line_type=cv2.LINE_AA,  # type: ignore
-#             )
-
-#     # --- Draw coordinate axes ---
-#     origin = (40, H - 40)  # bottom-left corner
-#     axis_len = 30
-
-#     # X axis → right (red)
-#     cv2.arrowedLine(  # type: ignore
-#         map_img,
-#         origin,
-#         (origin[0] + axis_len, origin[1]),
-#         (0, 0, 255),
-#         2,
-#         tipLength=0.3,
-#     )
-#     cv2.putText(  # type: ignore
-#         map_img,
-#         "X",
-#         (origin[0] + axis_len + 5, origin[1] + 5),
-#         cv2.FONT_HERSHEY_SIMPLEX,  # type: ignore
-#         0.5,
-#         (0, 0, 255),
-#         1,
-#     )
-
-#     # Z axis → up (blue)
-#     cv2.arrowedLine(  # type: ignore
-#         map_img,
-#         origin,
-#         (origin[0], origin[1] - axis_len),
-#         (255, 0, 0),
-#         2,
-#         tipLength=0.3,
-#     )
-#     cv2.putText(  # type: ignore
-#         map_img,
-#         "Z",
-#         (origin[0] - 10, origin[1] - axis_len - 5),
-#         cv2.FONT_HERSHEY_SIMPLEX,  # type: ignore
-#         0.5,
-#         (255, 0, 0),
-#         1,
-#     )
-
-#     return map_img
 
 
 def plot_tracking(
