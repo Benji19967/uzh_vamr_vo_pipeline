@@ -1,11 +1,10 @@
 import logging
-from typing import Sequence
 
 import numpy as np
 
 import src.utils.plot as plot
+from src.exceptions import FailedLocalizationError
 from src.features import keypoints
-from src.image import Image
 from src.klt import run_klt
 from src.localization.localization import ransacLocalizationCV2
 from src.structure_from_motion.reprojection_error import reprojection_error
@@ -27,7 +26,7 @@ KEYFRAME_INTERVAL = 5  # Process every 5th image as a keyframe
 
 
 def run_vo(
-    images: Sequence[Image],
+    images: list[np.ndarray],
     p_I_keypoints_initial: np.ndarray,
     p_W_landmarks_initial: np.ndarray,
     K: np.ndarray,
@@ -44,58 +43,53 @@ def run_vo(
     P1, X1, C1, F1, T1 = initialize_state(p_I_keypoints_initial, p_W_landmarks_initial)
 
     camera_positions = []
-    for i, (image_0, image_1) in enumerate(zip(images, images[1:])):
-        logger.debug(f"ITERATION: {i}")
+    for i, (img_0, img_1) in enumerate(zip(images, images[1:])):
+        logger.debug(f"Iteration: {i}")
 
-        # Track keypoints from image_0 to image_1
-        P1, status_mask = run_klt(image_0.img, image_1.img, P1)
+        # Track keypoints from img_0 to img_1
+        P1, status_mask = run_klt(img_0, img_1, P1)
         P1, X1 = points.apply_mask_many([P1, X1], status_mask)
 
-        # Track candidate keypoints from image_0 to image_1
+        # Track candidate keypoints from img_0 to img_1
         C0 = C1
-        C1, status_mask_candiate_kps = run_klt(image_0.img, image_1.img, C1)
+        C1, status_mask_candiate_kps = run_klt(img_0, img_1, C1)
         C0, C1, F1, T1 = points.apply_mask_many(
             [C0, C1, F1, T1], status_mask_candiate_kps
         )
-        logger.debug(f"After KLT: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
+        logger.debug(f"After klt: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
-        # Localize:  compute camera pose
-        R_C_W, t_C_W, best_inlier_mask = ransacLocalizationCV2(P1, X1, K)
-        P1, X1 = points.apply_mask_many([P1, X1], best_inlier_mask)
-        logger.debug(f"After RAN: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
-
-        if R_C_W is not None:
-            T_C_W = get_T_C_W(R_C_W, t_C_W)
-            camera_position = -R_C_W @ t_C_W
-            logger.debug(f"POSE:\n {T_C_W}")
-            camera_positions.append(camera_position)
-            logger.debug(f"CAMERA POSITION: {camera_position.flatten()}")
-        else:
+        # Localize: compute camera pose
+        try:
+            T_C_W, best_inlier_mask, camera_position = ransacLocalizationCV2(P1, X1, K)
+        except FailedLocalizationError:
+            logger.debug(f"Failed Ransac localization")
             continue
+        P1, X1 = points.apply_mask_many([P1, X1], best_inlier_mask)
+        camera_positions.append(camera_position)
+        logger.debug(f"After ran: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
+        logger.debug(f"Pose:\n {T_C_W}")
+        logger.debug(f"Camera position: {camera_position.flatten()}")
 
+        # Map: add new landmarks
         if i % KEYFRAME_INTERVAL == 0:
-            C1, F1, T1 = add_new_candidate_keypoints(image_1, P1, C1, F1, T1, T_C_W)
+            C1, F1, T1 = add_new_candidate_keypoints(img_1, P1, C1, F1, T1, T_C_W)
             P1, X1, C1, F1, T1 = add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K)
 
-        reproj_error = reprojection_error(
-            p_W_hom=points.to_hom(X1),
-            p_I=P1,
-            T_C_W=T_C_W,
-            K=K,
-        )
-        logger.debug(f"REPROJECTION ERROR LANDMARKS: {reproj_error}")
+        # Evaluate results
+        reproj_error = reprojection_error(points.to_hom(X1), P1, T_C_W, K)
+        logger.debug(f"Reprojection error landmarks: {reproj_error}")
 
         plot_visualizations(
-            P1, X1, C0, C1, camera_positions, image_0, image_1, plot_keypoints=True
+            P1, X1, C0, C1, camera_positions, img_0, img_1, plot_keypoints=True
         )
 
 
-def add_new_candidate_keypoints(image_1: Image, P1, C1, F1, T1, T_C_W):
+def add_new_candidate_keypoints(img_1: np.ndarray, P1, C1, F1, T1, T_C_W):
     """
     Add new candidate keypoints to the current set of keypoints.
 
     Args:
-        image_1: Image: Current image.
+        img_1: np.ndarray: Current image.
         P1: np.ndarray(2, N): Current keypoints.
         C1: np.ndarray(2, N): Current candidate keypoints.
         F1: np.ndarray(2, N): First track of candidate keypoints.
@@ -103,7 +97,7 @@ def add_new_candidate_keypoints(image_1: Image, P1, C1, F1, T1, T_C_W):
         T_C_W: np.ndarray(3, 4): Camera pose for the current image.
     """
     C1_new, num_new_candidate_keypoints = keypoints.find_keypoints(
-        image_1.img, MAX_NUM_NEW_CANDIDATE_KEYPOINTS, exclude=[C1, P1]
+        img_1, MAX_NUM_NEW_CANDIDATE_KEYPOINTS, exclude=[C1, P1]
     )
     C1 = np.c_[C1, C1_new]
     F1 = np.c_[F1, C1_new]
@@ -148,7 +142,7 @@ def add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K):
 
     best_inlier_mask_ransac = np.full(mask_successful_triangulation.sum(), False)
     if C1.any() and mask_successful_triangulation.sum() >= 4:
-        _, _, best_inlier_mask_ransac = ransacLocalizationCV2(
+        _, best_inlier_mask_ransac, _ = ransacLocalizationCV2(
             C1_triangulated, p_W_new_landmarks, K
         )
         logger.debug(f"Num ransac inliers: {best_inlier_mask_ransac.sum()}")
@@ -182,15 +176,15 @@ def plot_visualizations(
     plot_tracking=False,
 ):
     if plot_keypoints:
-        plot.plot_keypoints(img=image_1.img, p_I_keypoints=[P1, C1], fmt=["rx", "gx"])
+        plot.plot_keypoints(img=image_1, p_I_keypoints=[P1, C1], fmt=["rx", "gx"])
     if plot_landmarks:
         plot.plot_landmarks_top_view(p_W=X1, camera_positions=camera_positions)
     if plot_tracking:
         plot.plot_tracking(
             I0_keypoints=C0,
             I1_keypoints=C1,
-            figsize_pixels_x=image_0.img.shape[1],
-            figsize_pixels_y=image_0.img.shape[0],
+            figsize_pixels_x=image_0.shape[1],
+            figsize_pixels_y=image_0.shape[0],
         )
 
 

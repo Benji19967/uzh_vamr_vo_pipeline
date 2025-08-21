@@ -27,7 +27,7 @@ def main() -> None:
     image_1 = ParkingDataReader.read_image(id=2)
     p1_I_keypoints, _, p_W_landmarks = initialize(image_0, image_1, K=K_PARKING)
 
-    images = ParkingDataReader.read_images(end_id=NUM_IMAGES_PARKING)
+    images = ParkingDataReader.read_imgs(end_id=NUM_IMAGES_PARKING)
     vo.run_vo(
         images=images,
         p_I_keypoints_initial=p1_I_keypoints,

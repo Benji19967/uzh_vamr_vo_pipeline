@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from functools import lru_cache
 from pathlib import Path
 
+import numpy as np
+
 from src.image import Dataset
 from src.image import DatasetImage as Image
 from src.utils import utils
@@ -28,6 +30,10 @@ class DataReader(ABC):
     @classmethod
     def read_images(cls, start_id: int = 0, end_id: int = 5) -> list[Image]:
         return [cls.read_image(id=id) for id in range(start_id, end_id)]
+
+    @classmethod
+    def read_imgs(cls, start_id: int = 0, end_id: int = 5) -> list[np.ndarray]:
+        return [cls.read_image(id=id).img for id in range(start_id, end_id)]
 
     @classmethod
     def show_image(cls, id: int = 0) -> None:
