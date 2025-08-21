@@ -126,6 +126,44 @@ def test_from_cv2_empty():
     assert result.shape == (2, 0)
 
 
+def test_to_hom_2d():
+    p = np.array(
+        [
+            [1, 2, 3],
+            [4, 5, 6],
+        ]
+    )
+    result = points.to_hom(p)
+    expected = np.array(
+        [
+            [1, 2, 3],
+            [4, 5, 6],
+            [1, 1, 1],
+        ]
+    )
+    assert np.array_equal(result, expected)
+
+
+def test_to_hom_3d():
+    p = np.array(
+        [
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+        ]
+    )
+    result = points.to_hom(p)
+    expected = np.array(
+        [
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+            [1, 1, 1],
+        ]
+    )
+    assert np.array_equal(result, expected)
+
+
 def test_compute_bearing_angles_with_translation():
     p_I_1 = np.array(
         [

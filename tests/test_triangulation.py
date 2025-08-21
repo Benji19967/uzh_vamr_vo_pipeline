@@ -135,11 +135,11 @@ def test_triangulate_landmarks():
     K = np.eye(3)
     mask_to_triangulate = np.array([True, False, True])
 
-    p_W_hom_new_landmarks, mask_successful_triangulation = triangulate_landmarks(
+    p_W_new_landmarks, mask_successful_triangulation = triangulate_landmarks(
         F1=F1, C1=C1, T1=T1, T_C_W=T_C_W, K=K, mask_to_triangulate=mask_to_triangulate
     )
 
-    assert p_W_hom_new_landmarks.shape == (4, 2)
+    assert p_W_new_landmarks.shape == (3, 2)
     assert mask_successful_triangulation.shape == (3,)
     assert np.array_equal(mask_successful_triangulation, [True, False, True])
     expected_p_W_hom = np.array(
@@ -147,7 +147,6 @@ def test_triangulate_landmarks():
             [2.0, 3.0],
             [3.0, 2.0],
             [4.0, 5.0],
-            [1.0, 1.0],
         ]
     )
-    np.testing.assert_array_almost_equal(p_W_hom_new_landmarks, expected_p_W_hom)
+    np.testing.assert_array_almost_equal(p_W_new_landmarks, expected_p_W_hom)

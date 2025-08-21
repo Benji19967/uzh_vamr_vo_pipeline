@@ -1,3 +1,4 @@
+import logging
 from typing import Sequence
 
 import numpy as np
@@ -15,7 +16,9 @@ from src.utils.points import compute_bearing_angles_with_translation
 
 np.set_printoptions(suppress=True)
 
-# TODO: add a note about notation / documentation regarding (x,y) vs (y,x)
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 MAX_NUM_NEW_CANDIDATE_KEYPOINTS = 1000
 MAX_REPROJECTION_ERROR = 5
@@ -42,121 +45,157 @@ def run_vo(
 
     camera_positions = []
     for i, (image_0, image_1) in enumerate(zip(images, images[1:])):
-        print(i)
+        logger.debug(f"ITERATION: {i}")
+
+        # Track keypoints from image_0 to image_1
         P1, status_mask = run_klt(image_0.img, image_1.img, P1)
         P1, X1 = points.apply_mask_many([P1, X1], status_mask)
 
+        # Track candidate keypoints from image_0 to image_1
         C0 = C1
         C1, status_mask_candiate_kps = run_klt(image_0.img, image_1.img, C1)
         C0, C1, F1, T1 = points.apply_mask_many(
             [C0, C1, F1, T1], status_mask_candiate_kps
         )
-        print(f"After KLT: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
+        logger.debug(f"After KLT: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
-        R_C_W, t_C_W, best_inlier_mask = ransacLocalizationCV2(
-            p_I_keypoints=P1, p_W_landmarks=X1, K=K
-        )
+        # Localize:  compute camera pose
+        R_C_W, t_C_W, best_inlier_mask = ransacLocalizationCV2(P1, X1, K)
         P1, X1 = points.apply_mask_many([P1, X1], best_inlier_mask)
-        print(f"After RAN: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
+        logger.debug(f"After RAN: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
         if R_C_W is not None:
-            T_C_W_flat = get_T_C_W_flat(R_C_W, t_C_W)
-            T_C_W = T_C_W_flat.reshape((3, 4))
-            print("POSE")
-            print(T_C_W)
+            T_C_W = get_T_C_W(R_C_W, t_C_W)
             camera_position = -R_C_W @ t_C_W
+            logger.debug(f"POSE:\n {T_C_W}")
             camera_positions.append(camera_position)
-            print(f"CAMERA POSITION: {camera_position.flatten()}")
+            logger.debug(f"CAMERA POSITION: {camera_position.flatten()}")
         else:
-            # TODO: Make sure this is correct behaviour
             continue
 
-        print("REPROJECTION ERROR LANDMARKS")
+        if i % KEYFRAME_INTERVAL == 0:
+            C1, F1, T1 = add_new_candidate_keypoints(image_1, P1, C1, F1, T1, T_C_W)
+            P1, X1, C1, F1, T1 = add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K)
+
         reproj_error = reprojection_error(
-            p_W_hom=np.r_[X1, np.ones((1, X1.shape[1]))],
+            p_W_hom=points.to_hom(X1),
             p_I=P1,
             T_C_W=T_C_W,
             K=K,
         )
-        print(reproj_error)
+        logger.debug(f"REPROJECTION ERROR LANDMARKS: {reproj_error}")
 
-        # Add new candidate keypoints
-        # if C1.shape[1] < 200:
-        if i % KEYFRAME_INTERVAL == 0:
-            C1_new, num_new_candidate_keypoints = keypoints.find_keypoints(
-                img=image_1.img,
-                max_keypoints=MAX_NUM_NEW_CANDIDATE_KEYPOINTS,
-                exclude=[C1, P1],
-            )
-            C1 = np.c_[C1, C1_new]
-            F1 = np.c_[F1, C1_new]
-            T1 = np.c_[
-                T1,
-                np.tile(T_C_W_flat, (num_new_candidate_keypoints, 1)).T,
-            ]
+        plot_visualizations(
+            P1, X1, C0, C1, camera_positions, image_0, image_1, plot_keypoints=True
+        )
 
-        # region Plotting
+
+def add_new_candidate_keypoints(image_1: Image, P1, C1, F1, T1, T_C_W):
+    """
+    Add new candidate keypoints to the current set of keypoints.
+
+    Args:
+        image_1: Image: Current image.
+        P1: np.ndarray(2, N): Current keypoints.
+        C1: np.ndarray(2, N): Current candidate keypoints.
+        F1: np.ndarray(2, N): First track of candidate keypoints.
+        T1: np.ndarray(12, N): Camera poses at first track of candidate keypoints.
+        T_C_W: np.ndarray(3, 4): Camera pose for the current image.
+    """
+    C1_new, num_new_candidate_keypoints = keypoints.find_keypoints(
+        image_1.img, MAX_NUM_NEW_CANDIDATE_KEYPOINTS, exclude=[C1, P1]
+    )
+    C1 = np.c_[C1, C1_new]
+    F1 = np.c_[F1, C1_new]
+    T1 = np.c_[T1, multiply_T(get_T_C_W_flat(T_C_W), num_new_candidate_keypoints)]
+    return C1, F1, T1
+
+
+def add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K):
+    """
+    Add new landmarks to the current set of landmarks.
+    Remove the corresponding candidate keypoints from the current set.
+
+    Requirements to find a new landmark:
+
+    1. Bearing angle > threshold
+    2. Reprojection error < threshold
+    3. Is not an outlier when using RANSAC
+
+    Args:
+        P1: np.ndarray(2, N): Current keypoints.
+        X1: np.ndarray(3, N): Current landmarks.
+        C1: np.ndarray(2, M): Current candidate keypoints.
+        F1: np.ndarray(2, M): First track of candidate keypoints.
+        T1: np.ndarray(12, M): Camera poses at first track of candidate keypoints.
+        T_C_W: np.ndarray(3, 4): Camera pose for the current image.
+        K: np.ndarray(3, 3): Camera intrinsic matrix.
+    Returns:
+        P1: np.ndarray(2, N): Updated keypoints.
+        X1: np.ndarray(3, N): Updated landmarks.
+        C1: np.ndarray(2, M): Updated candidate keypoints.
+    """
+    assert F1.any()
+    _, _, mask_to_triangulate = compute_bearing_angles_with_translation(
+        F1, C1, T1, T_C_W, K, MIN_ANGLE_TO_TRIANGULATE
+    )
+
+    p_W_new_landmarks, mask_successful_triangulation = triangulate_landmarks(
+        F1, C1, T1, T_C_W, K, mask_to_triangulate, MAX_REPROJECTION_ERROR
+    )
+    C1_triangulated = points.apply_mask(C1, mask_successful_triangulation)
+    logger.debug(f"Successful triangulation: {mask_successful_triangulation.sum()}")
+
+    best_inlier_mask_ransac = np.full(mask_successful_triangulation.sum(), False)
+    if C1.any() and mask_successful_triangulation.sum() >= 4:
+        _, _, best_inlier_mask_ransac = ransacLocalizationCV2(
+            C1_triangulated, p_W_new_landmarks, K
+        )
+        logger.debug(f"Num ransac inliers: {best_inlier_mask_ransac.sum()}")
+
+        C1_triangulated_inliers, p_W_new_landmarks_inliers = points.apply_mask_many(
+            [C1_triangulated, p_W_new_landmarks],
+            best_inlier_mask_ransac,
+        )
+
+        mask_new_landmarks = compose_masks(
+            mask_successful_triangulation, best_inlier_mask_ransac
+        )
+
+        P1 = np.c_[P1, C1_triangulated_inliers]
+        X1 = np.c_[X1, p_W_new_landmarks_inliers]
+        C1, F1, T1 = points.apply_mask_many([C1, F1, T1], ~mask_new_landmarks)
+
+    return P1, X1, C1, F1, T1
+
+
+def plot_visualizations(
+    P1,
+    X1,
+    C0,
+    C1,
+    camera_positions,
+    image_0,
+    image_1,
+    plot_keypoints=True,
+    plot_landmarks=False,
+    plot_tracking=False,
+):
+    if plot_keypoints:
         plot.plot_keypoints(img=image_1.img, p_I_keypoints=[P1, C1], fmt=["rx", "gx"])
-        # endregion
+    if plot_landmarks:
+        plot.plot_landmarks_top_view(p_W=X1, camera_positions=camera_positions)
+    if plot_tracking:
+        plot.plot_tracking(
+            I0_keypoints=C0,
+            I1_keypoints=C1,
+            figsize_pixels_x=image_0.img.shape[1],
+            figsize_pixels_y=image_0.img.shape[0],
+        )
 
-        # Add new landmarks
-        if F1.any() and i % KEYFRAME_INTERVAL == 0:
-            _, _, mask_to_triangulate = compute_bearing_angles_with_translation(
-                F1, C1, T1, T_C_W_flat, K, MIN_ANGLE_TO_TRIANGULATE
-            )
 
-            # plot.plot_landmarks_top_view(p_W=X1, camera_positions=camera_positions)
-            print(f"Successful triangulation: {mask_to_triangulate.sum()}")
-
-            p_W_hom_new_landmarks, mask_successful_triangulation = (
-                triangulate_landmarks(
-                    F1, C1, T1, T_C_W, K, mask_to_triangulate, MAX_REPROJECTION_ERROR
-                )
-            )
-            C1_triangulated = points.apply_mask(C1, mask_successful_triangulation)
-
-            best_inlier_mask_ransac = np.full(
-                mask_successful_triangulation.sum(), False
-            )
-            if C1.any() and mask_successful_triangulation.sum() >= 4:
-                _, _, best_inlier_mask_ransac = ransacLocalizationCV2(
-                    p_I_keypoints=C1_triangulated,
-                    p_W_landmarks=p_W_hom_new_landmarks[:3, :],
-                    K=K,
-                )
-                print(f"Successful ransac inliers: {best_inlier_mask_ransac.sum()}")
-                C1_triangulated_inliers, p_W_hom_new_landmarks_inliers = (
-                    points.apply_mask_many(
-                        [C1_triangulated, p_W_hom_new_landmarks],
-                        best_inlier_mask_ransac,
-                    )
-                )
-
-                mask_new_landmarks = compose_masks(
-                    mask_successful_triangulation, best_inlier_mask_ransac
-                )
-
-                P1 = np.c_[P1, C1_triangulated_inliers]
-                X1 = np.c_[X1, p_W_hom_new_landmarks_inliers[:3, :]]
-                C1 = C1[:, ~mask_new_landmarks]
-                F1 = F1[:, ~mask_new_landmarks]
-                T1 = T1[:, ~mask_new_landmarks]
-
-                # reproj_error_new_landmarks = reprojection_error(
-                #     p_W_hom=p_W_hom_new_landmarks_inliers,
-                #     p_I=C1_triangulated_inliers,
-                #     T_C_W=T_C_W,
-                #     K=K,
-                # )
-
-        # region Plot Tracking/KLT
-        # plot.plot_tracking(
-        #     I0_keypoints=C0,
-        #     I1_keypoints=C1,
-        #     figsize_pixels_x=image_0.img.shape[1],
-        #     figsize_pixels_y=image_0.img.shape[0],
-        # )
-        # endregion
+def multiply_T(T_C_W_flat, num_new_candidate_keypoints):
+    return np.tile(T_C_W_flat, (num_new_candidate_keypoints, 1)).T
 
 
 def initialize_state(
@@ -180,7 +219,11 @@ def initialize_state(
     return P0, X0, C1, F1, T1
 
 
-def get_T_C_W_flat(R_C_W, t_C_W):
+def get_T_C_W(R_C_W, t_C_W):
+    return np.c_[R_C_W, t_C_W]
+
+
+def get_T_C_W_flat(T_C_W):
     """
     From (3, 4):
 
@@ -192,4 +235,4 @@ def get_T_C_W_flat(R_C_W, t_C_W):
 
     r11 r12 r13 tx r21 r22 r23 ty r31 r32 r33 tz
     """
-    return np.c_[R_C_W, t_C_W].flatten()
+    return T_C_W.flatten()

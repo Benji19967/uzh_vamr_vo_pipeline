@@ -17,6 +17,9 @@ def triangulate_landmarks(
     """
     Triangulate landmarks from two sets of keypoints and camera poses.
 
+    Only keep landmarks where the reprojection error is lower than the
+    maximum allowed reprojection error and the points are in the positive z-direction.
+
     Args:
         F1 (np.ndarray) (2, N): First track of keypoints.
         C1 (np.ndarray) (2, N): Keypoints.
@@ -65,6 +68,6 @@ def triangulate_landmarks(
 
     mask_successful_triangulation = np.array(mask_successful_triangulation)
     return (
-        points.apply_mask(p_W_hom_new_landmarks, mask_successful_triangulation),
+        points.apply_mask(p_W_hom_new_landmarks[:3, :], mask_successful_triangulation),
         mask_successful_triangulation,
     )

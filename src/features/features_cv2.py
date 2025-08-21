@@ -68,6 +68,9 @@ def good_features_grid(
                     c_full = c[0] + np.array([x_start, y_start])
                     features.append(c_full)
 
+    if not features:
+        return np.zeros((2, 0), dtype=np.int16)
+
     # Convert to required format
     features = np.array(features, dtype=np.int0).T
 

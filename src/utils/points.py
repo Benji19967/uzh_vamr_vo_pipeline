@@ -57,6 +57,19 @@ def from_cv2(p_I: np.ndarray) -> np.ndarray:
     return p_I.T.reshape(2, -1)
 
 
+def to_hom(p: np.ndarray) -> np.ndarray:
+    """
+    Convert points to homogeneous coordinates.
+
+    Args:
+        p (np.ndarray): (2 or 3, N)
+
+    Returns:
+        np.ndarray: (3 or 4, N)
+    """
+    return np.r_[p, np.ones((1, p.shape[1]))]
+
+
 def compute_bearing_angles_with_translation(
     p_I_1: np.ndarray,
     p_I_2: np.ndarray,
@@ -71,7 +84,7 @@ def compute_bearing_angles_with_translation(
     Inputs:
         p_I_1, p_I_2: np.ndarray(2, N) arrays of 2D image points
         poses_A: np.ndarray(12, N) arrays of flattened 3x4 pose matrices, one per correspondence
-        T_C_W:  flattened 3x4 pose matrix
+        T_C_W: np.ndarray(3, 4) pose matrix
         K: np.ndarray(3, 3) camera intrinsic matrix
 
     Returns:
@@ -97,15 +110,9 @@ def compute_bearing_angles_with_translation(
     R_A = poses_A_reshaped[:, :3, :]  # (3,3,N)
     t_A = poses_A_reshaped[:, 3, :]  # (3,N)
 
-    pose_B_reshaped = T_C_W.reshape(3, 4)  # (3,4)
+    pose_B_reshaped = T_C_W  # (3,4)
     R_B = pose_B_reshaped[:, :3]  # (3,3)
     t_B = pose_B_reshaped[:, 3]  # (3,)
-
-    # Camera centers in world frame
-    # C_A = np.empty((3, N))
-    # for i in range(N):
-    #     C_A[:, i] = -R_A[:, :, i].T @ t_A[:, i]
-    # C_B = -R_B.T @ t_B
 
     # Rotate directions to world frame
     dirs_A_world = np.empty_like(dirs_A_cam)
