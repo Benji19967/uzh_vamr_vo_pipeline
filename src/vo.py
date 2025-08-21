@@ -1,5 +1,6 @@
 import logging
 
+import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -90,6 +91,7 @@ def run_vo(
             img_1,
             plot_keypoints=True,
             plot_landmarks=True,
+            plot_tracking=False,
         )
 
 
@@ -190,15 +192,34 @@ def plot_visualizations(
         # plot.plot_keypoints(
         #     ax=ax1, img=image_1, p_I_keypoints=[P1, C1], fmt=["rx", "gx"]
         # )
-        plot.plot_keypoints_cv2(
+        # plot.plot_keypoints_cv2(
+        #     img=image_1,
+        #     p_I_keypoints=[P1, C1],
+        #     marker_size=[5, 5],
+        #     color=[(0, 0, 255), (0, 255, 0)],
+        #     thickness=[1, 1],
+        # )
+        img_out = plot.draw_keypoints(
             img=image_1,
             p_I_keypoints=[P1, C1],
-            size=[5, 5],
+            marker_size=[5, 5],
             color=[(0, 0, 255), (0, 255, 0)],
             thickness=[1, 1],
         )
+        ax1.imshow(cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB))  # type: ignore
+        ax1.axis("off")
     if plot_landmarks:
         plot.plot_landmarks_top_view(ax=ax2, p_W=X1, camera_positions=camera_positions)
+        # plot.plot_landmarks_cv2(
+        #     p_W=X1,
+        #     camera_positions=camera_positions,
+        #     output_size=image_1.shape[:2],
+        #     marker_size=5,
+        #     landmark_color=(255, 0, 0),
+        #     camera_color=(0, 0, 255),
+        #     thickness=1,
+        #     scale=1.0,
+        # )
     if plot_tracking:
         plot.plot_tracking(
             I0_keypoints=C0,
@@ -206,7 +227,8 @@ def plot_visualizations(
             figsize_pixels_x=image_0.shape[1],
             figsize_pixels_y=image_0.shape[0],
         )
-    # plt.pause(0.05)
+    plt.pause(0.05)
+    plt.close()
 
 
 def multiply_T(T_C_W_flat, num_new_candidate_keypoints):
