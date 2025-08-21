@@ -1,11 +1,85 @@
 from typing import cast
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import Axes3D, proj3d
 
 DPI = 227  # Mac M1
+
+
+def plot_keypoints(
+    ax,
+    img: np.ndarray,
+    p_I_keypoints: np.ndarray | list[np.ndarray],
+    fmt: str | list[str] = "rx",
+) -> None:
+    # ax.clf()
+    # ax.close()
+    ax.imshow(img, cmap="gray")
+    if isinstance(p_I_keypoints, list):
+        for points, f in zip(p_I_keypoints, fmt):
+            ax.plot(points[0, :], points[1, :], f, linewidth=2)
+    else:
+        ax.plot(p_I_keypoints[0, :], p_I_keypoints[1, :], fmt, linewidth=2)
+    ax.axis("off")
+    # plt.show()
+    # plt.pause(0.05)
+
+
+def plot_keypoints_cv2(
+    img: np.ndarray,
+    p_I_keypoints: np.ndarray | list[np.ndarray],
+    size: int | list[int] = 5,
+    color: tuple[int, int, int] | list[tuple[int, int, int]] = (255, 0, 0),
+    thickness: int | list[int] = 1,
+) -> None:
+    """
+    Significantly faster than plot_keypoints
+    """
+    img_out = img.copy()
+    img_out = cv2.cvtColor(img_out, cv2.COLOR_GRAY2BGR)  # type: ignore
+
+    def draw_marker(p_I_keypoints, s, c, t):
+        for x, y in p_I_keypoints.T:
+            cv2.drawMarker(  # type: ignore
+                img_out,
+                (int(x), int(y)),
+                c,
+                markerType=cv2.MARKER_TILTED_CROSS,  # type: ignore
+                markerSize=s,
+                thickness=t,
+                line_type=cv2.LINE_AA,  # type: ignore
+            )
+
+    if isinstance(p_I_keypoints, list):
+        assert isinstance(size, list)
+        assert isinstance(color, list)
+        assert isinstance(thickness, list)
+        assert len(p_I_keypoints) == len(size) == len(color) == len(thickness)
+
+        for p_I_kps, s, c, t in zip(p_I_keypoints, size, color, thickness):
+            draw_marker(p_I_kps, s, c, t)
+    else:
+        draw_marker(p_I_keypoints, size, color, thickness)
+
+    cv2.imshow("Keypoints", img_out)  # type: ignore
+    cv2.waitKey(10)  # type: ignore
+    cv2.destroyAllWindows()  # type: ignore
+
+
+def plot_landmarks_top_view(
+    ax, p_W: np.ndarray, fmt="bx", camera_positions: list[np.ndarray] | None = None
+) -> None:
+    # ax.clf()
+    # ax.close()
+    ax.plot(p_W[0, :], p_W[2, :], fmt)
+    if camera_positions is not None:
+        for camera_position in camera_positions[-20:]:
+            ax.plot(camera_position[0], camera_position[2], "rx")
+    # plt.show()
+    # plt.pause(0.05)
 
 
 def plot_tracking(
@@ -34,37 +108,6 @@ def plot_tracking(
     plt.gca().invert_yaxis()  # because p=(x, y) of keypoints are given for origin at top left corner  # type: ignore
     for i in range(x_from.shape[0]):
         plt.plot([x_from[i], x_to[i]], [y_from[i], y_to[i]], "g-", linewidth=1)
-    # plt.show()
-    plt.pause(0.05)
-
-
-def plot_landmarks_top_view(
-    p_W: np.ndarray, fmt="bx", camera_positions: list[np.ndarray] | None = None
-) -> None:
-    plt.clf()
-    plt.close()
-    plt.plot(p_W[0, :], p_W[2, :], fmt)
-    if camera_positions is not None:
-        for camera_position in camera_positions[-20:]:
-            plt.plot(camera_position[0], camera_position[2], "rx")
-    # plt.show()
-    plt.pause(0.05)
-
-
-def plot_keypoints(
-    img: np.ndarray,
-    p_I_keypoints: np.ndarray | list[np.ndarray],
-    fmt: str | list[str] = "rx",
-) -> None:
-    plt.clf()
-    plt.close()
-    plt.imshow(img, cmap="gray")
-    if isinstance(p_I_keypoints, list):
-        for points, f in zip(p_I_keypoints, fmt):
-            plt.plot(points[0, :], points[1, :], f, linewidth=2)
-    else:
-        plt.plot(p_I_keypoints[0, :], p_I_keypoints[1, :], fmt, linewidth=2)
-    plt.axis("off")
     # plt.show()
     plt.pause(0.05)
 

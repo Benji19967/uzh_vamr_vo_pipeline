@@ -1,6 +1,7 @@
 import logging
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 import src.utils.plot as plot
 from src.exceptions import FailedLocalizationError
@@ -80,7 +81,15 @@ def run_vo(
         logger.debug(f"Reprojection error landmarks: {reproj_error}")
 
         plot_visualizations(
-            P1, X1, C0, C1, camera_positions, img_0, img_1, plot_keypoints=True
+            P1,
+            X1,
+            C0,
+            C1,
+            camera_positions,
+            img_0,
+            img_1,
+            plot_keypoints=True,
+            plot_landmarks=True,
         )
 
 
@@ -91,9 +100,9 @@ def add_new_candidate_keypoints(img_1: np.ndarray, P1, C1, F1, T1, T_C_W):
     Args:
         img_1: np.ndarray: Current image.
         P1: np.ndarray(2, N): Current keypoints.
-        C1: np.ndarray(2, N): Current candidate keypoints.
-        F1: np.ndarray(2, N): First track of candidate keypoints.
-        T1: np.ndarray(12, N): Camera poses at first track of candidate keypoints.
+        C1: np.ndarray(2, M): Current candidate keypoints.
+        F1: np.ndarray(2, M): First track of current candidate keypoints.
+        T1: np.ndarray(12, M): Camera poses at first track of current candidate keypoints.
         T_C_W: np.ndarray(3, 4): Camera pose for the current image.
     """
     C1_new, num_new_candidate_keypoints = keypoints.find_keypoints(
@@ -120,8 +129,8 @@ def add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K):
         P1: np.ndarray(2, N): Current keypoints.
         X1: np.ndarray(3, N): Current landmarks.
         C1: np.ndarray(2, M): Current candidate keypoints.
-        F1: np.ndarray(2, M): First track of candidate keypoints.
-        T1: np.ndarray(12, M): Camera poses at first track of candidate keypoints.
+        F1: np.ndarray(2, M): First track of current candidate keypoints.
+        T1: np.ndarray(12, M): Camera poses at first track of current candidate keypoints.
         T_C_W: np.ndarray(3, 4): Camera pose for the current image.
         K: np.ndarray(3, 3): Camera intrinsic matrix.
     Returns:
@@ -175,10 +184,21 @@ def plot_visualizations(
     plot_landmarks=False,
     plot_tracking=False,
 ):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+
     if plot_keypoints:
-        plot.plot_keypoints(img=image_1, p_I_keypoints=[P1, C1], fmt=["rx", "gx"])
+        # plot.plot_keypoints(
+        #     ax=ax1, img=image_1, p_I_keypoints=[P1, C1], fmt=["rx", "gx"]
+        # )
+        plot.plot_keypoints_cv2(
+            img=image_1,
+            p_I_keypoints=[P1, C1],
+            size=[5, 5],
+            color=[(0, 0, 255), (0, 255, 0)],
+            thickness=[1, 1],
+        )
     if plot_landmarks:
-        plot.plot_landmarks_top_view(p_W=X1, camera_positions=camera_positions)
+        plot.plot_landmarks_top_view(ax=ax2, p_W=X1, camera_positions=camera_positions)
     if plot_tracking:
         plot.plot_tracking(
             I0_keypoints=C0,
@@ -186,6 +206,7 @@ def plot_visualizations(
             figsize_pixels_x=image_0.shape[1],
             figsize_pixels_y=image_0.shape[0],
         )
+    # plt.pause(0.05)
 
 
 def multiply_T(T_C_W_flat, num_new_candidate_keypoints):
@@ -197,24 +218,21 @@ def initialize_state(
     p_W_landmarks_initial: np.ndarray,
 ):
     """
-    Si = (Pi,Xi,Ci,Fi,Ti)
-    Pi: 2xK
-    Xi: 2xK
-    Ci: 2xM
-    Fi: 2xM
-    Ti: 12xM
+    S1 = (P1,X1,C1,F1,T1)
+
+    P1: np.ndarray(2, N): Current keypoints.
+    X1: np.ndarray(3, N): Current landmarks.
+    C1: np.ndarray(2, M): Current candidate keypoints.
+    F1: np.ndarray(2, M): First track of current candidate keypoints.
+    T1: np.ndarray(12, M): Camera poses at first track of current candidate keypoints.
     """
-    P0 = p_I_keypoints_initial
-    X0 = p_W_landmarks_initial
+    P1 = p_I_keypoints_initial
+    X1 = p_W_landmarks_initial
     C1 = np.zeros((2, 0), dtype=np.int32)
     F1 = np.zeros((2, 0), dtype=np.int32)
     T1 = np.zeros((12, 0), dtype=np.int32)
 
-    return P0, X0, C1, F1, T1
-
-
-def get_T_C_W(R_C_W, t_C_W):
-    return np.c_[R_C_W, t_C_W]
+    return P1, X1, C1, F1, T1
 
 
 def get_T_C_W_flat(T_C_W):
