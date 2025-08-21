@@ -34,7 +34,8 @@ def plot_tracking(
     plt.gca().invert_yaxis()  # because p=(x, y) of keypoints are given for origin at top left corner  # type: ignore
     for i in range(x_from.shape[0]):
         plt.plot([x_from[i], x_to[i]], [y_from[i], y_to[i]], "g-", linewidth=1)
-    plt.show()
+    # plt.show()
+    plt.pause(0.05)
 
 
 def plot_landmarks_top_view(
@@ -46,7 +47,8 @@ def plot_landmarks_top_view(
     if camera_positions is not None:
         for camera_position in camera_positions[-20:]:
             plt.plot(camera_position[0], camera_position[2], "rx")
-    plt.show()
+    # plt.show()
+    plt.pause(0.05)
 
 
 def plot_keypoints(
@@ -63,7 +65,8 @@ def plot_keypoints(
     else:
         plt.plot(p_I_keypoints[0, :], p_I_keypoints[1, :], fmt, linewidth=2)
     plt.axis("off")
-    plt.show()
+    # plt.show()
+    plt.pause(0.05)
 
 
 class Arrow3D(FancyArrowPatch):

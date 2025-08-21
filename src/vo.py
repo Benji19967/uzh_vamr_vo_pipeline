@@ -1,18 +1,12 @@
-import sys
 from typing import Sequence
 
-import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 
 import src.utils.plot as plot
 from src.features import keypoints
-from src.features.features_cv2 import good_features_to_track
 from src.image import Image
 from src.klt import run_klt
-from src.localization.localization import ransacLocalization, ransacLocalizationCV2
-from src.structure_from_motion import sfm
-from src.structure_from_motion.linear_triangulation import linear_triangulation
+from src.localization.localization import ransacLocalizationCV2
 from src.structure_from_motion.reprojection_error import reprojection_error
 from src.triangulate_landmarks import triangulate_landmarks
 from src.utils import points
@@ -27,43 +21,6 @@ MAX_NUM_NEW_CANDIDATE_KEYPOINTS = 1000
 MAX_REPROJECTION_ERROR = 5
 MIN_ANGLE_TO_TRIANGULATE = 5.0  # degrees
 KEYFRAME_INTERVAL = 5  # Process every 5th image as a keyframe
-
-
-def initialize_state(
-    p_I_keypoints_initial: np.ndarray,
-    p_W_landmarks_initial: np.ndarray,
-):
-    """
-    Si = (Pi,Xi,Ci,Fi,Ti)
-    Pi: 2xK
-    Xi: 2xK
-    Ci: 2xM
-    Fi: 2xM
-    Ti: 12xM
-    """
-    P0 = p_I_keypoints_initial
-    X0 = p_W_landmarks_initial
-    C1 = np.zeros((2, 0), dtype=np.int32)
-    F1 = np.zeros((2, 0), dtype=np.int32)
-    T1 = np.zeros((12, 0), dtype=np.int32)
-
-    return P0, X0, C1, F1, T1
-
-
-# TODO: do I need T_W_C rather than T_C_W?
-def get_T_C_W_flat(R_C_W, t_C_W):
-    """
-    From (3, 4):
-
-    r11 r12 r13 tx
-    r21 r22 r23 ty
-    r31 r32 r33 tz
-
-    to (1, 12):
-
-    r11 r12 r13 tx r21 r22 r23 ty r31 r32 r33 tz
-    """
-    return np.c_[R_C_W, t_C_W].flatten()
 
 
 def run_vo(
@@ -100,15 +57,6 @@ def run_vo(
             p_I_keypoints=P1, p_W_landmarks=X1, K=K
         )
         P1, X1 = points.apply_mask_many([P1, X1], best_inlier_mask)
-
-        # region Plotting
-        # plot.plot_keypoints(
-        #     image_1.img,
-        #     [P1[:, best_inlier_mask], P1[:, ~best_inlier_mask]],
-        #     fmt=["gx", "rx"],
-        # )
-        # endregion
-
         print(f"After RAN: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
         if R_C_W is not None:
@@ -154,31 +102,18 @@ def run_vo(
         # Add new landmarks
         if F1.any() and i % KEYFRAME_INTERVAL == 0:
             _, _, mask_to_triangulate = compute_bearing_angles_with_translation(
-                p_I_1=F1,
-                p_I_2=C1,
-                poses_A=T1,
-                T_C_W=T_C_W_flat,
-                K=K,
-                min_angle=MIN_ANGLE_TO_TRIANGULATE,
+                F1, C1, T1, T_C_W_flat, K, MIN_ANGLE_TO_TRIANGULATE
             )
 
-            plot.plot_landmarks_top_view(p_W=X1, camera_positions=camera_positions)
+            # plot.plot_landmarks_top_view(p_W=X1, camera_positions=camera_positions)
             print(f"Successful triangulation: {mask_to_triangulate.sum()}")
 
             p_W_hom_new_landmarks, mask_successful_triangulation = (
                 triangulate_landmarks(
-                    F1=F1,
-                    C1=C1,
-                    T1=T1,
-                    T_C_W=T_C_W,
-                    K=K,
-                    mask_to_triangulate=mask_to_triangulate,
-                    max_reprojection_error=MAX_REPROJECTION_ERROR,
+                    F1, C1, T1, T_C_W, K, mask_to_triangulate, MAX_REPROJECTION_ERROR
                 )
             )
             C1_triangulated = points.apply_mask(C1, mask_successful_triangulation)
-
-            # plot.plot_landmarks_top_view(p_W_hom_new_landmarks, "yx")
 
             best_inlier_mask_ransac = np.full(
                 mask_successful_triangulation.sum(), False
@@ -214,13 +149,6 @@ def run_vo(
                 #     K=K,
                 # )
 
-                # print("After adding new landmarks")
-                # print("Num new candidate keypoints: ", num_new_candidate_keypoints)
-                # print("Num new landmarks added: ", best_inlier_mask_candidates.sum())
-                # print(f"P1: {P1.shape}")
-                # print(f"X1: {X1.shape}")
-                # print(f"C1: {C1.shape}")
-
         # region Plot Tracking/KLT
         # plot.plot_tracking(
         #     I0_keypoints=C0,
@@ -229,3 +157,39 @@ def run_vo(
         #     figsize_pixels_y=image_0.img.shape[0],
         # )
         # endregion
+
+
+def initialize_state(
+    p_I_keypoints_initial: np.ndarray,
+    p_W_landmarks_initial: np.ndarray,
+):
+    """
+    Si = (Pi,Xi,Ci,Fi,Ti)
+    Pi: 2xK
+    Xi: 2xK
+    Ci: 2xM
+    Fi: 2xM
+    Ti: 12xM
+    """
+    P0 = p_I_keypoints_initial
+    X0 = p_W_landmarks_initial
+    C1 = np.zeros((2, 0), dtype=np.int32)
+    F1 = np.zeros((2, 0), dtype=np.int32)
+    T1 = np.zeros((12, 0), dtype=np.int32)
+
+    return P0, X0, C1, F1, T1
+
+
+def get_T_C_W_flat(R_C_W, t_C_W):
+    """
+    From (3, 4):
+
+    r11 r12 r13 tx
+    r21 r22 r23 ty
+    r31 r32 r33 tz
+
+    to (1, 12):
+
+    r11 r12 r13 tx r21 r22 r23 ty r31 r32 r33 tz
+    """
+    return np.c_[R_C_W, t_C_W].flatten()

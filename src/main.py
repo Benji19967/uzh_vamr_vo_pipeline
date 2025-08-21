@@ -4,6 +4,8 @@ import src.vo as vo
 from src.initialize import initialize
 from src.utils.image_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
 
+NUM_IMAGES_PARKING = 598
+
 K_MALAGA = np.array(
     [
         [837.619011, 0, 522.434637],
@@ -25,7 +27,7 @@ def main() -> None:
     image_1 = ParkingDataReader.read_image(id=2)
     p1_I_keypoints, _, p_W_landmarks = initialize(image_0, image_1, K=K_PARKING)
 
-    images = ParkingDataReader.read_images(end_id=200)
+    images = ParkingDataReader.read_images(end_id=NUM_IMAGES_PARKING)
     vo.run_vo(
         images=images,
         p_I_keypoints_initial=p1_I_keypoints,
