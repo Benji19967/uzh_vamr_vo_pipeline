@@ -81,18 +81,7 @@ def run_vo(
         reproj_error = reprojection_error(points.to_hom(X1), P1, T_C_W, K)
         logger.debug(f"Reprojection error landmarks: {reproj_error}")
 
-        plot_visualizations(
-            P1,
-            X1,
-            C0,
-            C1,
-            camera_positions,
-            img_0,
-            img_1,
-            plot_keypoints=True,
-            plot_landmarks=True,
-            plot_tracking=False,
-        )
+        plot_visualizations(P1, X1, C0, C1, camera_positions, img_0, img_1)
 
 
 def add_new_candidate_keypoints(img_1: np.ndarray, P1, C1, F1, T1, T_C_W):
@@ -183,7 +172,7 @@ def plot_visualizations(
     image_0,
     image_1,
     plot_keypoints=True,
-    plot_landmarks=False,
+    plot_landmarks=True,
     plot_tracking=False,
 ):
     if plot_keypoints and plot_landmarks:
@@ -202,7 +191,6 @@ def plot_visualizations(
         plt.pause(0.05)
         plt.close()
     elif plot_keypoints:
-
         plot.plot_keypoints_cv2(
             img=image_1,
             p_I_keypoints=[P1, C1],

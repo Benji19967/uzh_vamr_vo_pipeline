@@ -30,7 +30,7 @@ def triangulate_landmarks(
         max_reprojection_error (int): Maximum allowed reprojection error for a successful triangulation.
 
     Returns:
-        p_W_hom_new_landmarks (np.ndarray) (4, T): Homogeneous coordinates of the triangulated landmarks.
+        p_W_new_landmarks (np.ndarray) (3, T): Homogeneous coordinates of the triangulated landmarks.
         mask_successful_triangulation (np.ndarray) (N,): Boolean mask indicating which triangulations were successful.
 
     """
