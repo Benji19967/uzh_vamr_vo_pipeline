@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 MAX_NUM_CANDIDATE_KEYPOINTS = 1000
-MAX_NUM_NEW_CANDIDATE_KEYPOINTS = 500
+MAX_NUM_NEW_CANDIDATE_KEYPOINTS = 1000
 MAX_REPROJECTION_ERROR = 5
 MIN_ANGLE_TO_TRIANGULATE = 5.0  # degrees
 KEYFRAME_INTERVAL = 5  # Process every ith image as a keyframe

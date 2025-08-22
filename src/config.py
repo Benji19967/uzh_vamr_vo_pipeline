@@ -5,6 +5,10 @@ POSTGRES_URL_FORMAT = "postgresql://{username}:{password}@{host}:{port}/{databas
 
 
 class Settings(BaseSettings):
+    SECOND_IMAGE_ID_PARKING: int = 2
+    SECOND_IMAGE_ID_MALAGA: int = 2
+    SECOND_IMAGE_ID_KITTI: int = 3
+
     NUM_IMAGES_PARKING: int = 598
     NUM_IMAGES_MALAGA: int = 2121
     NUM_IMAGES_KITTI: int = 2760

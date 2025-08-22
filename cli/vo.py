@@ -27,17 +27,20 @@ def run(
         DataReader = ParkingDataReader
         K = settings.K_PARKING
         NUM_IMAGES = settings.NUM_IMAGES_PARKING
+        SECOND_IMAGE_ID = settings.SECOND_IMAGE_ID_PARKING
     elif dataset == Dataset.MALAGA:
         DataReader = MalagaDataReader
         K = settings.K_MALAGA
         NUM_IMAGES = settings.NUM_IMAGES_MALAGA
+        SECOND_IMAGE_ID = settings.SECOND_IMAGE_ID_MALAGA
     elif dataset == Dataset.KITTI:
         DataReader = KittiDataReader
         K = settings.K_KITTI
         NUM_IMAGES = settings.NUM_IMAGES_KITTI
+        SECOND_IMAGE_ID = settings.SECOND_IMAGE_ID_KITTI
 
     image_0 = DataReader.read_image(id=0)
-    image_1 = DataReader.read_image(id=2)
+    image_1 = DataReader.read_image(id=SECOND_IMAGE_ID)
     p1_I_keypoints, _, p_W_landmarks = initialize(image_0, image_1, K=K)
 
     images = DataReader.read_imgs(end_id=NUM_IMAGES)
