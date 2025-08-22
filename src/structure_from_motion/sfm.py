@@ -1,9 +1,13 @@
 import numpy as np
 
-from structure_from_motion.decompose_essential_matrix import decomposeEssentialMatrix
-from structure_from_motion.disambiguate_relative_pose import disambiguateRelativePose
-from structure_from_motion.estimate_essential_matrix import estimateEssentialMatrix
-from structure_from_motion.linear_triangulation import linear_triangulation
+from src.structure_from_motion.decompose_essential_matrix import (
+    decomposeEssentialMatrix,
+)
+from src.structure_from_motion.disambiguate_relative_pose import (
+    disambiguateRelativePose,
+)
+from src.structure_from_motion.estimate_essential_matrix import estimateEssentialMatrix
+from src.structure_from_motion.linear_triangulation import linear_triangulation
 
 
 def run_sfm(p1_I: np.ndarray, p2_I: np.ndarray, K: np.ndarray):

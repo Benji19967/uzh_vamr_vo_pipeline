@@ -1,16 +1,13 @@
 import typer
 
-from src.cli import images
+from cli import images
+from cli.vo import vo
 
-# from housing.config import settings
+cli = typer.Typer(no_args_is_help=True, add_completion=False)
 
-
-# CSV_FILEPATH = settings.HOMEGATE_CSV_FILEPATH
-
-vo = typer.Typer(no_args_is_help=True, add_completion=False)
-
-vo.add_typer(images.images, name="images")
+cli.add_typer(images.images, name="images")
+cli.add_typer(vo, name="vo")
 
 
 if __name__ == "__main__":
-    vo()
+    cli()
