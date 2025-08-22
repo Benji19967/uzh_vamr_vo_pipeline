@@ -36,8 +36,11 @@ def good_features_grid(
     min_distance=5,
     grid_rows=6,
     grid_cols=8,
-    features_per_cell=10,
+    max_features_per_cell=10,
 ):
+    max_features_per_cell = min(
+        max_features_per_cell, max_features // (grid_rows * grid_cols)
+    )
     h, w = img.shape[:2]
     cell_h = h // grid_rows
     cell_w = w // grid_cols
@@ -57,7 +60,7 @@ def good_features_grid(
             # Detect features in the cell
             corners = cv.goodFeaturesToTrack(  # type: ignore
                 cell_img,
-                maxCorners=features_per_cell,
+                maxCorners=max_features_per_cell,
                 qualityLevel=quality_level,
                 minDistance=min_distance,
             )
@@ -75,7 +78,8 @@ def good_features_grid(
     features = np.array(features, dtype=np.int0).T
 
     # Limit to max_features
-    if features.shape[1] > max_features:
-        features = features[:, :max_features]
+    assert features.shape[1] <= max_features
+    # if features.shape[1] > max_features:
+    #     features = features[:, :max_features]
 
     return features

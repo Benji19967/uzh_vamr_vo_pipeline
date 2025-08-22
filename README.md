@@ -1,1 +1,39 @@
-# Visual Odometry Pipeline for the course VARM at UZH
+# Visual Odometry Pipeline for the course VAMR at UZH
+
+## Getting started
+
+1. Install the requirements in a Python venv
+2. Activate the environment
+3. `python src/main.py`
+
+## Conventions
+
+Points are stored as __column vectors__ to facilitate the matrix multiplications in the linear algebra.
+
+__Notation__: 
+
+- `p_W`: points in the World coordinate frame
+- `p_I`: points in the Image coordinate frame 
+- `p_C`: points in the Camera coordinate frame
+- `_hom`: homogenous points
+- `T_C_W`: transformation from the World to the Camera coordinate frame. 
+
+__Example__: 
+
+The homogenous 3D points (1, 2, 3, 1) and (4, 5, 6, 1) in the World frame:
+```
+p_W_hom = np.ndarray(
+    [1, 4],
+    [2, 5],
+    [3, 6],
+    [1, 1],
+)
+```
+
+## Notable progress
+
+1. Adding keypoints using grids. Avoids clustering of keypoints and distributes them over the entire image.
+2. Limit number of candidate keypoints. 
+    - Eliminates old candidate keypoints (__after__ new ones were added) which may be out of frame and leads to less drift.
+    - More efficient computationally
+    - Interesting point: returning the new candidate keypoints in random order (shuffling) seems to increase drift.

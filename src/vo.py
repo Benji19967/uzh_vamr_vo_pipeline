@@ -21,10 +21,11 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-MAX_NUM_NEW_CANDIDATE_KEYPOINTS = 1000
+MAX_NUM_CANDIDATE_KEYPOINTS = 1000
+MAX_NUM_NEW_CANDIDATE_KEYPOINTS = 500
 MAX_REPROJECTION_ERROR = 5
 MIN_ANGLE_TO_TRIANGULATE = 5.0  # degrees
-KEYFRAME_INTERVAL = 5  # Process every 5th image as a keyframe
+KEYFRAME_INTERVAL = 5  # Process every ith image as a keyframe
 
 
 def run_vo(
@@ -61,6 +62,8 @@ def run_vo(
         logger.debug(f"After klt: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
         # Localize: compute camera pose
+        if P1.shape[1] < 4:
+            raise ValueError(f"Not enough keypoints/landmarks for localization")
         try:
             T_C_W, best_inlier_mask, camera_position = ransacLocalizationCV2(P1, X1, K)
         except FailedLocalizationError:
@@ -76,6 +79,10 @@ def run_vo(
         if i % KEYFRAME_INTERVAL == 0:
             C1, F1, T1 = add_new_candidate_keypoints(img_1, P1, C1, F1, T1, T_C_W)
             P1, X1, C1, F1, T1 = add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K)
+        if C1.shape[1] > MAX_NUM_CANDIDATE_KEYPOINTS:
+            C1 = C1[:, :MAX_NUM_CANDIDATE_KEYPOINTS]
+            F1 = F1[:, :MAX_NUM_CANDIDATE_KEYPOINTS]
+            T1 = T1[:, :MAX_NUM_CANDIDATE_KEYPOINTS]
 
         # Evaluate results
         reproj_error = reprojection_error(points.to_hom(X1), P1, T_C_W, K)
@@ -186,7 +193,12 @@ def plot_visualizations(
         )
         ax1.imshow(cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB))  # type: ignore
         ax1.axis("off")
+        ax1.set_title("Keypoints (red) / Candidate Keypoints (green)", fontsize=10)
+
         plot.plot_landmarks_top_view(ax=ax2, p_W=X1, camera_positions=camera_positions)
+        ax2.set_title(
+            "Landmarks (blue) / Camera positions (red). Last 20 frames.", fontsize=8
+        )
 
         plt.pause(0.05)
         plt.close()

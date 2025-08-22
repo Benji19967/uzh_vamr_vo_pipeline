@@ -5,6 +5,7 @@ from src.initialize import initialize
 from src.utils.image_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
 
 NUM_IMAGES_PARKING = 598
+NUM_IMAGES_MALAGA = 2121
 
 K_MALAGA = np.array(
     [
@@ -23,16 +24,24 @@ K_PARKING = np.array(
 
 
 def main() -> None:
-    image_0 = ParkingDataReader.read_image(id=0)
-    image_1 = ParkingDataReader.read_image(id=2)
-    p1_I_keypoints, _, p_W_landmarks = initialize(image_0, image_1, K=K_PARKING)
+    DataReader = ParkingDataReader
+    K = K_PARKING
+    NUM_IMAGES = NUM_IMAGES_PARKING
 
-    images = ParkingDataReader.read_imgs(end_id=NUM_IMAGES_PARKING)
+    # DataReader = MalagaDataReader
+    # K = K_MALAGA
+    # NUM_IMAGES = NUM_IMAGES_MALAGA
+
+    image_0 = DataReader.read_image(id=0)
+    image_1 = DataReader.read_image(id=2)
+    p1_I_keypoints, _, p_W_landmarks = initialize(image_0, image_1, K=K)
+
+    images = DataReader.read_imgs(end_id=NUM_IMAGES)
     vo.run_vo(
         images=images,
         p_I_keypoints_initial=p1_I_keypoints,
         p_W_landmarks_initial=p_W_landmarks,
-        K=K_PARKING,
+        K=K,
     )
 
 
