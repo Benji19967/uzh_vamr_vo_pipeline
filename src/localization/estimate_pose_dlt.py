@@ -26,7 +26,7 @@ def _build_measurement_matrix_Q(p_N: np.ndarray, p_W: np.ndarray) -> np.ndarray:
     return Q
 
 
-def estimatePoseDLT(p_I, p_W, K):
+def estimate_pose_dlt(p_I, p_W, K):
     """
     Estimates the pose of a camera using a set of 2D-3D correspondences
     and a given camera matrix.
@@ -48,11 +48,6 @@ def estimatePoseDLT(p_I, p_W, K):
     p_N = p_N_hom[:2, :]
 
     # Build measurement matrix Q
-    # P_homogeneous = np.r_[P.T, np.ones(num_points)].T
-    # q1 = np.kron(P_homogeneous, [[1], [0]])
-    # q2 = np.kron(P_homogeneous, [[0], [1]])
-    # q3 = np.kron(P_homogeneous, p)
-
     Q = _build_measurement_matrix_Q(p_N=p_N, p_W=p_W)
 
     # Solve for Q.M_tilde = 0 subject to the constraint ||M_tilde||=1

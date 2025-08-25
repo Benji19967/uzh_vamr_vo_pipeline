@@ -8,7 +8,7 @@ import src.utils.plot as plot
 from src.exceptions import FailedLocalizationError
 from src.features import keypoints
 from src.klt import run_klt
-from src.localization.localization import ransacLocalizationCV2
+from src.localization.pnp_ransac_localization import pnp_ransac_localization_cv2
 from src.structure_from_motion.reprojection_error import reprojection_error
 from src.triangulate_landmarks import triangulate_landmarks
 from src.utils import points
@@ -65,7 +65,9 @@ def run_vo(
         if P1.shape[1] < 4:
             raise ValueError(f"Not enough keypoints/landmarks for localization")
         try:
-            T_C_W, best_inlier_mask, camera_position = ransacLocalizationCV2(P1, X1, K)
+            T_C_W, best_inlier_mask, camera_position = pnp_ransac_localization_cv2(
+                P1, X1, K
+            )
         except FailedLocalizationError:
             logger.debug(f"Failed Ransac localization")
             continue
@@ -149,7 +151,7 @@ def add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K):
 
     best_inlier_mask_ransac = np.full(mask_successful_triangulation.sum(), False)
     if C1.any() and mask_successful_triangulation.sum() >= 4:
-        _, best_inlier_mask_ransac, _ = ransacLocalizationCV2(
+        _, best_inlier_mask_ransac, _ = pnp_ransac_localization_cv2(
             C1_triangulated, p_W_new_landmarks, K
         )
         logger.debug(f"Num ransac inliers: {best_inlier_mask_ransac.sum()}")

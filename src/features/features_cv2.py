@@ -6,38 +6,25 @@ from src.utils.points import from_cv2
 MIN_EUCLIDEAN_DISTANCE_BETWEEN_CORNERS = 20
 
 
-def good_features_to_track(img: np.ndarray, max_features: int):
-    """Shi-Tomasi Corner Detector
+def good_features_grid(
+    img: np.ndarray,
+    max_features: int,
+    R_min: float = 0.01,
+    min_distance: int = 5,
+    grid_rows: int = 6,
+    grid_cols: int = 8,
+    max_features_per_cell: int = 10,
+):
+    """Shi-Tomasi Corner Detector -- find features in a grid
+    for a better distribution of keypoints.
 
     Args:
      - img          np.ndarray: img to detect features from
      - max_features int: max number of features that will be detected
 
     Returns:
-     - p_I_corners   np.ndarray(2,N): (x,y) coordinates of 2D corners/features detected
+     - p_I_corners  np.ndarray(2,N): (x,y) coordinates of 2D corners/features detected
     """
-    R_min = 0.01
-    corners = cv.goodFeaturesToTrack(  # type: ignore
-        img, max_features, R_min, MIN_EUCLIDEAN_DISTANCE_BETWEEN_CORNERS
-    )
-    if corners is None:
-        return np.zeros((2, 0), dtype=np.int16)
-
-    corners = np.int0(corners)
-    p_I_corners = from_cv2(corners)  # type: ignore
-
-    return p_I_corners
-
-
-def good_features_grid(
-    img: np.ndarray,
-    max_features: int,
-    quality_level=0.01,
-    min_distance=5,
-    grid_rows=6,
-    grid_cols=8,
-    max_features_per_cell=10,
-):
     max_features_per_cell = min(
         max_features_per_cell, max_features // (grid_rows * grid_cols)
     )
@@ -61,7 +48,7 @@ def good_features_grid(
             corners = cv.goodFeaturesToTrack(  # type: ignore
                 cell_img,
                 maxCorners=max_features_per_cell,
-                qualityLevel=quality_level,
+                qualityLevel=R_min,
                 minDistance=min_distance,
             )
 
@@ -77,9 +64,28 @@ def good_features_grid(
     # Convert to required format
     features = np.array(features, dtype=np.int0).T
 
-    # Limit to max_features
     assert features.shape[1] <= max_features
-    # if features.shape[1] > max_features:
-    #     features = features[:, :max_features]
 
     return features
+
+
+def good_features_to_track(img: np.ndarray, max_features: int, R_min: float = 0.01):
+    """Shi-Tomasi Corner Detector
+
+    Args:
+     - img          np.ndarray: img to detect features from
+     - max_features int: max number of features that will be detected
+
+    Returns:
+     - p_I_corners   np.ndarray(2,N): (x,y) coordinates of 2D corners/features detected
+    """
+    corners = cv.goodFeaturesToTrack(  # type: ignore
+        img, max_features, R_min, MIN_EUCLIDEAN_DISTANCE_BETWEEN_CORNERS
+    )
+    if corners is None:
+        return np.zeros((2, 0), dtype=np.int16)
+
+    corners = np.int0(corners)
+    p_I_corners = from_cv2(corners)  # type: ignore
+
+    return p_I_corners

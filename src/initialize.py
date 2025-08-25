@@ -2,7 +2,7 @@ import numpy as np
 
 from src.features.keypoints import get_keypoint_correspondences
 from src.image import Image
-from src.localization.localization import ransacLocalization
+from src.localization.pnp_ransac_localization import pnp_ransac_localization_cv2
 from src.structure_from_motion import sfm
 
 MAX_NUM_KEYPOINTS = 1000
@@ -36,7 +36,7 @@ def initialize(
     )
 
     p_W, _, _ = sfm.run_sfm(p1_I=p1_I_keypoints, p2_I=p2_I_keypoints, K=K)
-    _, _, best_inlier_mask, _, _ = ransacLocalization(
+    _, best_inlier_mask, _ = pnp_ransac_localization_cv2(
         p_I_keypoints=p1_I_keypoints,
         p_W_landmarks=p_W,
         K=K,

@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from src.exceptions import FailedLocalizationError
-from src.localization.estimate_pose_dlt import estimatePoseDLT
+from src.localization.estimate_pose_dlt import estimate_pose_dlt
 from src.transformations.transformations import camera_to_pixel, world_to_camera
 
 NUM_ITERATIONS = 2000
@@ -11,7 +11,7 @@ NUM_SAMPLES = 6
 MIN_INLIER_COUNT = 6
 
 
-def ransacLocalizationCV2(
+def pnp_ransac_localization_cv2(
     p_I_keypoints: np.ndarray,
     p_W_landmarks: np.ndarray,
     K: np.ndarray,
@@ -57,7 +57,7 @@ def ransacLocalizationCV2(
 
 # TODO: yields a rather large reprojection error sometimes (>500 or >1000px)
 # the cv2 equivalent consistently yields <10px for the same inputs
-def ransacLocalization(
+def pnp_ransac_localization(
     p_I_keypoints: np.ndarray,
     p_W_landmarks: np.ndarray,
     K: np.ndarray,
@@ -103,7 +103,7 @@ def ransacLocalization(
         p_I_keypoint_sample = p_I_keypoints[:, indices]
         p_W_landmark_sample = p_W_landmarks[:, indices]
 
-        M_C_W_guess = estimatePoseDLT(
+        M_C_W_guess = estimate_pose_dlt(
             p_I=p_I_keypoint_sample, p_W=p_W_landmark_sample, K=K
         )
         R_C_W_guess = M_C_W_guess[:, :3]

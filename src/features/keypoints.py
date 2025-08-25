@@ -9,6 +9,7 @@ def find_keypoints(
     img: np.ndarray,
     max_keypoints: int,
     exclude: list[np.ndarray] | None = None,
+    use_grid: bool = True,
 ):
     """
     Args:
@@ -20,8 +21,10 @@ def find_keypoints(
      - p_I_new_keypoints np.ndarray(2, N)
      - num_new_candidate_keypoints
     """
-    # p_I_new_keypoints = good_features_to_track(img=img, max_features=max_keypoints)
-    p_I_new_keypoints = good_features_grid(img=img, max_features=max_keypoints)
+    if use_grid:
+        p_I_new_keypoints = good_features_grid(img=img, max_features=max_keypoints)
+    else:
+        p_I_new_keypoints = good_features_to_track(img=img, max_features=max_keypoints)
 
     # Remove keypoints that are already found
     if exclude:
