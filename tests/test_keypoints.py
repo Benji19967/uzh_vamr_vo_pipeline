@@ -6,7 +6,7 @@ from src.features.keypoints import (
     get_keypoint_correspondences,
     keep_unique,
 )
-from src.image import Image
+from src.utils.image import Image
 
 
 def test_keep_unique_removes_existing_points():

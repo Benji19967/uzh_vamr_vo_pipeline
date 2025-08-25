@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.klt import run_klt
+from src.tracking.klt import run_klt
 
 
 def test_klt():

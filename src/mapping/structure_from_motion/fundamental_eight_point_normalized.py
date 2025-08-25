@@ -1,5 +1,7 @@
-from src.structure_from_motion.fundamental_eight_point import fundamentalEightPoint
-from src.structure_from_motion.normalise_2D_pts import normalise2DPts
+from src.mapping.structure_from_motion.fundamental_eight_point import (
+    fundamentalEightPoint,
+)
+from src.mapping.structure_from_motion.normalise_2D_pts import normalise2DPts
 
 
 def fundamentalEightPointNormalized(p1_I_hom, p2_I_hom):

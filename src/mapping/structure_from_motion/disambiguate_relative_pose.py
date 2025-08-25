@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.structure_from_motion.linear_triangulation import linear_triangulation
+from src.mapping.linear_triangulation import linear_triangulation
 
 
 def disambiguateRelativePose(Rots, u3, p1_I_hom, p2_I_hom, K1, K2):

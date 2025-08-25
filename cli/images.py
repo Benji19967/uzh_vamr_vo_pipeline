@@ -3,8 +3,8 @@ from pathlib import Path
 import typer
 
 from src.features.features import HarrisScores, Keypoints
-from src.image import Image
 from src.utils import utils
+from src.utils.image import Image
 
 images = typer.Typer(no_args_is_help=True)
 

@@ -1,8 +1,8 @@
 import numpy as np
 
-from src.structure_from_motion.linear_triangulation import linear_triangulation
-from src.structure_from_motion.reprojection_error import reprojection_error
-from src.triangulate_landmarks import triangulate_landmarks
+from src.mapping.linear_triangulation import linear_triangulation
+from src.mapping.reprojection_error import reprojection_error
+from src.mapping.triangulate_landmarks import triangulate_landmarks
 
 
 def test_linear_triangulation_multiple_points():

@@ -4,9 +4,9 @@ from pathlib import Path
 
 import numpy as np
 
-from src.image import Dataset
-from src.image import DatasetImage as Image
 from src.utils import utils
+from src.utils.image import Dataset
+from src.utils.image import DatasetImage as Image
 
 
 class DataReader(ABC):

@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.structure_from_motion.utils import cross2Matrix
+from src.mapping.utils import cross2Matrix
 
 
 def linear_triangulation(

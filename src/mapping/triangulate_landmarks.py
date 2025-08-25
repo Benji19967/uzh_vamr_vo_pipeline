@@ -1,7 +1,7 @@
 import numpy as np
 
-from src.structure_from_motion.linear_triangulation import linear_triangulation
-from src.structure_from_motion.reprojection_error import reprojection_error
+from src.mapping.linear_triangulation import linear_triangulation
+from src.mapping.reprojection_error import reprojection_error
 from src.utils import points
 
 

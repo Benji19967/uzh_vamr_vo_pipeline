@@ -5,7 +5,7 @@ import numpy as np
 from scipy import signal
 from scipy.spatial.distance import cdist
 
-from src.image import Image
+from src.utils.image import Image
 from src.utils.utils import timing
 
 

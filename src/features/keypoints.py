@@ -2,7 +2,7 @@ import numpy as np
 
 from src.features.features import Descriptors
 from src.features.features_cv2 import good_features_grid, good_features_to_track
-from src.image import Image
+from src.utils.image import Image
 
 
 def find_keypoints(

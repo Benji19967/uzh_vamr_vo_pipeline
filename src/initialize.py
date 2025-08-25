@@ -1,9 +1,9 @@
 import numpy as np
 
 from src.features.keypoints import get_keypoint_correspondences
-from src.image import Image
 from src.localization.pnp_ransac_localization import pnp_ransac_localization_cv2
-from src.structure_from_motion import sfm
+from src.mapping.structure_from_motion import sfm
+from src.utils.image import Image
 
 MAX_NUM_KEYPOINTS = 1000
 

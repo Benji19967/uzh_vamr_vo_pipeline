@@ -1,4 +1,4 @@
-from src.structure_from_motion.fundamental_eight_point_normalized import (
+from src.mapping.structure_from_motion.fundamental_eight_point_normalized import (
     fundamentalEightPointNormalized,
 )
 

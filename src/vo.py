@@ -7,10 +7,10 @@ from matplotlib import pyplot as plt
 import src.utils.plot as plot
 from src.exceptions import FailedLocalizationError
 from src.features import keypoints
-from src.klt import run_klt
 from src.localization.pnp_ransac_localization import pnp_ransac_localization_cv2
-from src.structure_from_motion.reprojection_error import reprojection_error
-from src.triangulate_landmarks import triangulate_landmarks
+from src.mapping.reprojection_error import reprojection_error
+from src.mapping.triangulate_landmarks import triangulate_landmarks
+from src.tracking.klt import run_klt
 from src.utils import points
 from src.utils.masks import compose_masks
 from src.utils.points import compute_bearing_angles_with_translation
