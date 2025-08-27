@@ -7,8 +7,6 @@ from src.initialize import initialize
 from src.utils.image_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
 from src.vo import run_vo
 
-vo = typer.Typer(no_args_is_help=True)
-
 
 class Dataset(str, Enum):
     PARKING = "parking"
@@ -16,7 +14,6 @@ class Dataset(str, Enum):
     KITTI = "kitti"
 
 
-@vo.command(no_args_is_help=True)
 def run(
     dataset: Dataset = typer.Option(
         ...,

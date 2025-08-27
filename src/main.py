@@ -1,5 +1,3 @@
-import numpy as np
-
 import src.vo as vo
 from src.config import settings
 from src.initialize import initialize
@@ -10,10 +8,6 @@ def main() -> None:
     DataReader = ParkingDataReader
     K = settings.K_PARKING
     NUM_IMAGES = settings.NUM_IMAGES_PARKING
-
-    # DataReader = MalagaDataReader
-    # K = settings.K_MALAGA
-    # NUM_IMAGES = settings.NUM_IMAGES_MALAGA
 
     image_0 = DataReader.read_image(id=0)
     image_1 = DataReader.read_image(id=2)
