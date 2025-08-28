@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 
 from src.plotting.keypoints import draw_keypoints, plot_keypoints
 from src.plotting.landmarks import plot_landmarks_top_view
-from src.plotting.tracking import plot_tracking
+from src.plotting.tracking import plot_tracking_cv2
 
 
 class Visualizer:
@@ -13,6 +13,9 @@ class Visualizer:
         plot_landmarks=True,
         plot_tracking=False,
     ):
+        if plot_tracking and (plot_keypoints or plot_landmarks):
+            raise ValueError("Cannot plot tracking with other plots")
+
         self._plot_keypoints = plot_keypoints
         self._plot_landmarks = plot_landmarks
         self._plot_tracking = plot_tracking
@@ -63,11 +66,4 @@ class Visualizer:
 
     def tracking(self, C0, C1, image_0):
         if self._plot_tracking:
-            plot_tracking(
-                I0_keypoints=C0,
-                I1_keypoints=C1,
-                figsize_pixels_x=image_0.shape[1],
-                figsize_pixels_y=image_0.shape[0],
-            )
-            plt.pause(0.05)
-            plt.close()
+            plot_tracking_cv2(C0, C1, image_0.shape)

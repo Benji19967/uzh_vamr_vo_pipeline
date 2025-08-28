@@ -1,36 +1,58 @@
+from typing import Any
+
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+
+cv2: Any
 
 DPI = 227  # Mac M1
 
 
-def plot_tracking(
-    I0_keypoints: np.ndarray,
-    I1_keypoints: np.ndarray,
-    figsize_pixels_x: int | None = None,
-    figsize_pixels_y: int | None = None,
+def plot_tracking_cv2(
+    I0_keypoints: np.ndarray, I1_keypoints: np.ndarray, shape, winname="Tracks"
 ):
     """
-    Plot keypoint tracking from one image to the next.
+    Draws tracking lines on a white canvas using image1 coordinates.
 
     Args:
-        I0_keypoints np.ndarray(2,N): p=(x,y)
-        I1_keypoints np.ndarray(2,N): p=(x,y)
-        figsize_pixels_x: x size of figure in pixels
-        figsize_pixels_y: y size of figure in pixels
+        I0_keypoints (np.ndarray): (2, N) array of keypoints in image 0 (x, y).
+        I1_keypoints (np.ndarray): (2, N) array of keypoints in image 1 (x, y).
+        shape (tuple): (H, W) shape of the image/canvas.
+        winname (str): Window name for cv2.imshow.
     """
-    x_from = I0_keypoints[0]
-    x_to = I1_keypoints[0]
-    y_from = I0_keypoints[1]
-    y_to = I1_keypoints[1]
+    canvas = draw_tracks(I0_keypoints, I1_keypoints, shape)
 
-    if figsize_pixels_x and figsize_pixels_y:
-        plt.figure(figsize=(figsize_pixels_x / DPI, figsize_pixels_y / DPI), dpi=DPI)
-        ax = plt.gca()
-        ax.set_xlim([0, figsize_pixels_x + 1])  # type: ignore
-        ax.set_ylim([0, figsize_pixels_y + 1])  # type: ignore
-    plt.gca().invert_yaxis()  # because p=(x, y) of keypoints are given for origin at top left corner  # type: ignore
-    for i in range(x_from.shape[0]):
-        plt.plot([x_from[i], x_to[i]], [y_from[i], y_to[i]], "g-", linewidth=1)
-    # plt.show()
-    plt.pause(0.05)
+    cv2.imshow(winname, canvas)
+    cv2.waitKey(10)
+    cv2.destroyAllWindows()
+
+
+def draw_tracks(I0_keypoints, I1_keypoints, shape):
+    """
+    Draws tracking lines on a white canvas using image1 coordinates.
+
+    Args:
+        I0_keypoints (np.ndarray): (2, N) array of keypoints in image 0 (x, y).
+        I1_keypoints (np.ndarray): (2, N) array of keypoints in image 1 (x, y).
+        shape (tuple): (H, W) shape of the image/canvas.
+        winname (str): Window name for cv2.imshow.
+    """
+    assert (
+        I0_keypoints.shape[0] == 2 and I1_keypoints.shape[0] == 2
+    ), "Keypoints must be shape (2, N)"
+    N = I0_keypoints.shape[1]
+    assert I1_keypoints.shape[1] == N, "Both keypoint arrays must have same N"
+
+    H, W = shape
+    canvas = np.ones((H, W, 3), dtype=np.uint8) * 255  # white canvas
+
+    for i in range(N):
+        x0, y0 = I0_keypoints[:, i]
+        x1, y1 = I1_keypoints[:, i]
+        color = (0, 255, 0)
+        pt0 = (int(x0), int(y0))
+        pt1 = (int(x1), int(y1))
+        cv2.arrowedLine(canvas, pt1, pt0, color, 1, tipLength=0.2)
+
+    return canvas
