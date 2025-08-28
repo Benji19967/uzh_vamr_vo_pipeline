@@ -11,6 +11,8 @@ def plot_tracking(
     figsize_pixels_y: int | None = None,
 ):
     """
+    Plot keypoint tracking from one image to the next.
+
     Args:
         I0_keypoints np.ndarray(2,N): p=(x,y)
         I1_keypoints np.ndarray(2,N): p=(x,y)

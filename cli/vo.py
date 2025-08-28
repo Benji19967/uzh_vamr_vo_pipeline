@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Annotated, List, Optional
 
 import typer
 
@@ -14,11 +15,15 @@ class Dataset(str, Enum):
     KITTI = "kitti"
 
 
+class Plot(str, Enum):
+    KEYPOINTS = "keypoints"
+    LANDMARKS = "landmarks"
+    TRACKING = "tracking"
+
+
 def run(
-    dataset: Dataset = typer.Option(
-        ...,
-        "--dataset",
-    ),
+    dataset: Annotated[Dataset, typer.Option()],
+    plot: Annotated[List[Plot], typer.Option()] = [Plot.KEYPOINTS, Plot.LANDMARKS],
 ) -> None:
     if dataset == Dataset.PARKING:
         DataReader = ParkingDataReader
@@ -46,4 +51,7 @@ def run(
         p_I_keypoints_initial=p1_I_keypoints,
         p_W_landmarks_initial=p_W_landmarks,
         K=K,
+        plot_keypoints=Plot.KEYPOINTS in plot,
+        plot_landmarks=Plot.LANDMARKS in plot,
+        plot_tracking=Plot.TRACKING in plot,
     )

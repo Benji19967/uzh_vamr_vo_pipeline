@@ -26,7 +26,7 @@ def plot_keypoints(
     img_out = draw_keypoints(img, p_I_keypoints, marker_size, color, thickness)
 
     cv2.imshow("Keypoints", img_out)
-    cv2.waitKey(10)
+    cv2.waitKey(1)
     cv2.destroyAllWindows()
 
 

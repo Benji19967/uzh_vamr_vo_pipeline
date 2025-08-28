@@ -31,6 +31,9 @@ def run_vo(
     p_I_keypoints_initial: np.ndarray,
     p_W_landmarks_initial: np.ndarray,
     K: np.ndarray,
+    plot_keypoints: bool,
+    plot_landmarks: bool,
+    plot_tracking: bool,
 ):
     """
     Run a visual odometry pipeline on the images
@@ -41,6 +44,7 @@ def run_vo(
         - p_W_landmarks_initial: np.ndarray(3, N) | (x,y,z)
         - K np.ndarray(3, 3): camera matrix
     """
+    visualizer = Visualizer(plot_keypoints, plot_landmarks, plot_tracking)
     P1, X1, C1, F1, T1 = initialize_state(p_I_keypoints_initial, p_W_landmarks_initial)
 
     camera_positions = []
@@ -57,6 +61,7 @@ def run_vo(
         C0, C1, F1, T1 = points.apply_mask_many(
             [C0, C1, F1, T1], status_mask_candiate_kps
         )
+        visualizer.tracking(C0, C1, img_0)
         logger.debug(f"After klt: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
         # Localize: compute camera pose
@@ -88,9 +93,7 @@ def run_vo(
         reproj_error = reprojection_error(points.to_hom(X1), P1, T_C_W, K)
         logger.debug(f"Reprojection error landmarks: {reproj_error}")
 
-        Visualizer(plot_keypoints=True, plot_landmarks=True).plot_visualizations(
-            P1, X1, C0, C1, camera_positions, img_0, img_1
-        )
+        visualizer.keypoints_and_landmarks(P1, X1, C1, camera_positions, img_1)
 
 
 def add_new_candidate_keypoints(img_1: np.ndarray, P1, C1, F1, T1, T_C_W):
