@@ -176,6 +176,22 @@ def add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K):
 
 
 def multiply_T(T_C_W_flat, num_new_candidate_keypoints):
+    """
+    From (1, 12):
+
+    [x, y, z, ..., v]
+
+    to (12, num_new_candidate_keypoints)
+
+    [
+        [x, x, x, ...],
+        [y, y, y, ...],
+        [z, z, z, ...],
+        ...
+        [v, v, v, ...]
+    ]
+
+    """
     return np.tile(T_C_W_flat, (num_new_candidate_keypoints, 1)).T
 
 

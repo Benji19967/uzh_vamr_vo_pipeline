@@ -19,6 +19,9 @@ def main() -> None:
         p_I_keypoints_initial=p1_I_keypoints,
         p_W_landmarks_initial=p_W_landmarks,
         K=K,
+        plot_keypoints=True,
+        plot_landmarks=True,
+        plot_tracking=False,
     )
 
 
