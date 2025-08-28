@@ -6,6 +6,13 @@
 2. Activate the environment
 3. `python src/main.py`
 
+## Using the CLI
+
+```bash
+vo --help
+vo run --dataset parking
+```
+
 ## Conventions
 
 Points are stored as __column vectors__ to facilitate the matrix multiplications in the linear algebra.

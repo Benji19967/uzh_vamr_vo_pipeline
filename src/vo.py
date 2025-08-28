@@ -1,15 +1,13 @@
 import logging
 
-import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 
-import src.utils.plot as plot
 from src.exceptions import FailedLocalizationError
 from src.features import keypoints
 from src.localization.pnp_ransac_localization import pnp_ransac_localization_cv2
 from src.mapping.reprojection_error import reprojection_error
 from src.mapping.triangulate_landmarks import triangulate_landmarks
+from src.plotting.plot import Visualizer
 from src.tracking.klt import run_klt
 from src.utils import points
 from src.utils.masks import compose_masks
@@ -90,7 +88,9 @@ def run_vo(
         reproj_error = reprojection_error(points.to_hom(X1), P1, T_C_W, K)
         logger.debug(f"Reprojection error landmarks: {reproj_error}")
 
-        plot_visualizations(P1, X1, C0, C1, camera_positions, img_0, img_1)
+        Visualizer(plot_keypoints=True, plot_landmarks=True).plot_visualizations(
+            P1, X1, C0, C1, camera_positions, img_0, img_1
+        )
 
 
 def add_new_candidate_keypoints(img_1: np.ndarray, P1, C1, F1, T1, T_C_W):
@@ -170,61 +170,6 @@ def add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K):
         C1, F1, T1 = points.apply_mask_many([C1, F1, T1], ~mask_new_landmarks)
 
     return P1, X1, C1, F1, T1
-
-
-def plot_visualizations(
-    P1,
-    X1,
-    C0,
-    C1,
-    camera_positions,
-    image_0,
-    image_1,
-    plot_keypoints=True,
-    plot_landmarks=True,
-    plot_tracking=False,
-):
-    if plot_keypoints and plot_landmarks:
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-        img_out = plot.draw_keypoints(
-            img=image_1,
-            p_I_keypoints=[P1, C1],
-            marker_size=[5, 5],
-            color=[(0, 0, 255), (0, 255, 0)],
-            thickness=[1, 1],
-        )
-        ax1.imshow(cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB))  # type: ignore
-        ax1.axis("off")
-        ax1.set_title("Keypoints (red) / Candidate Keypoints (green)", fontsize=10)
-
-        plot.plot_landmarks_top_view(ax=ax2, p_W=X1, camera_positions=camera_positions)
-        ax2.set_title(
-            "Landmarks (blue) / Camera positions (red). Last 20 frames.", fontsize=8
-        )
-
-        plt.pause(0.05)
-        plt.close()
-    elif plot_keypoints:
-        plot.plot_keypoints_cv2(
-            img=image_1,
-            p_I_keypoints=[P1, C1],
-            marker_size=[5, 5],
-            color=[(0, 0, 255), (0, 255, 0)],
-            thickness=[1, 1],
-        )
-    elif plot_landmarks:
-        fig, ax = plt.subplots()
-        plot.plot_landmarks_top_view(ax=ax, p_W=X1, camera_positions=camera_positions)
-        plt.pause(0.05)
-        plt.close()
-
-    if plot_tracking:
-        plot.plot_tracking(
-            I0_keypoints=C0,
-            I1_keypoints=C1,
-            figsize_pixels_x=image_0.shape[1],
-            figsize_pixels_y=image_0.shape[0],
-        )
 
 
 def multiply_T(T_C_W_flat, num_new_candidate_keypoints):
