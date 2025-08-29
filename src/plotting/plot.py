@@ -72,6 +72,10 @@ class Visualizer:
         if self._plot_tracking:
             plot_tracking_cv2(C0, C1, image_0.shape)
 
-    def trajectory(self, camera_positions: list[np.ndarray]):
+    def trajectory(
+        self,
+        camera_positions_estimated: list[np.ndarray],
+        camera_positions_ground_truth: list[np.ndarray] | None = None,
+    ):
         if self._trajectory:
-            plot_trajectory(camera_positions)
+            plot_trajectory(camera_positions_estimated, camera_positions_ground_truth)

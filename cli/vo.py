@@ -53,6 +53,10 @@ def run(
     image_1 = DataReader.read_image(id=SECOND_IMAGE_ID)
     p1_I_keypoints, _, p_W_landmarks = initialize(image_0, image_1, K=K)
 
+    plot_trajectory = Plot.TRAJECTORY in plot
+    camera_positions_ground_truth = (
+        DataReader.read_trajectory() if plot_trajectory else None
+    )
     images = DataReader.read_imgs(end_id=NUM_IMAGES)
     run_vo(
         images=images,
@@ -63,4 +67,5 @@ def run(
         plot_landmarks=Plot.LANDMARKS in plot,
         plot_tracking=Plot.TRACKING in plot,
         plot_trajectory=Plot.TRAJECTORY in plot,
+        camera_positions_ground_truth=camera_positions_ground_truth,
     )

@@ -2,15 +2,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_trajectory(camera_positions: list[np.ndarray]) -> None:
+def plot_trajectory(
+    camera_positions_estimated: list[np.ndarray],
+    camera_positions_ground_truth: list[np.ndarray] | None = None,
+) -> None:
     """
     Top-down view (xz)
     """
-    cam_x = [c[0] for c in camera_positions]
-    cam_z = [c[2] for c in camera_positions]
+    if camera_positions_ground_truth:
+        cam_x_gt = [c[0] for c in camera_positions_ground_truth]
+        cam_z_gt = [c[2] for c in camera_positions_ground_truth]
+        plt.plot(
+            cam_x_gt,
+            cam_z_gt,
+            "g-",
+            linewidth=2,
+            label="Camera Trajectory Ground Truth",
+        )
 
-    plt.plot(cam_x, cam_z, "b-", linewidth=2, label="Camera Trajectory")
-    plt.scatter(cam_x, cam_z, c="k", s=30)  # optional: mark camera positions
+    cam_x = [c[0] for c in camera_positions_estimated]
+    cam_z = [c[2] for c in camera_positions_estimated]
+    plt.plot(cam_x, cam_z, "b-", linewidth=2, label="Camera Trajectory Estimated")
 
     plt.xlabel("X (meters)")
     plt.ylabel("Z (meters)")
