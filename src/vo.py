@@ -95,9 +95,9 @@ def run_vo(
             C1, F1, T1 = add_new_candidate_keypoints(img_1, P1, C1, F1, T1, T_C_W)
             P1, X1, C1, F1, T1 = add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K)
         if C1.shape[1] > MAX_NUM_CANDIDATE_KEYPOINTS:
-            C1 = C1[:, :MAX_NUM_CANDIDATE_KEYPOINTS]
-            F1 = F1[:, :MAX_NUM_CANDIDATE_KEYPOINTS]
-            T1 = T1[:, :MAX_NUM_CANDIDATE_KEYPOINTS]
+            C1 = C1[:, -MAX_NUM_CANDIDATE_KEYPOINTS:]
+            F1 = F1[:, -MAX_NUM_CANDIDATE_KEYPOINTS:]
+            T1 = T1[:, -MAX_NUM_CANDIDATE_KEYPOINTS:]
 
         # Evaluate results
         reproj_error = reprojection_error(points.to_hom(X1), P1, T_C_W, K)
