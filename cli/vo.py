@@ -19,7 +19,8 @@ class Plot(str, Enum):
     KEYPOINTS = "keypoints"
     LANDMARKS = "landmarks"
     TRACKING = "tracking"
-    REPROJECTION_ERRORS = "reprojection_errors"
+    REPROJECTION_ERRORS = "reprojection-errors"
+    SCALE_DRIFT = "scale-drift"
     TRAJECTORY = "trajectory"
 
 
@@ -29,6 +30,7 @@ def run(
         Plot.KEYPOINTS,
         Plot.LANDMARKS,
         Plot.REPROJECTION_ERRORS,
+        Plot.SCALE_DRIFT,
         Plot.TRAJECTORY,
     ],
     num_images: Annotated[Optional[int], typer.Option()] = None,
@@ -56,8 +58,9 @@ def run(
     p1_I_keypoints, _, p_W_landmarks = initialize(image_0, image_1, K=K)
 
     plot_trajectory = Plot.TRAJECTORY in plot
+    plot_scale_drift = Plot.SCALE_DRIFT in plot
     camera_positions_ground_truth = (
-        DataReader.read_trajectory() if plot_trajectory else None
+        DataReader.read_trajectory() if (plot_trajectory or plot_scale_drift) else None
     )
     images = DataReader.read_imgs(end_id=NUM_IMAGES)
     run_vo(
@@ -69,6 +72,7 @@ def run(
         plot_landmarks=Plot.LANDMARKS in plot,
         plot_tracking=Plot.TRACKING in plot,
         plot_reprojection_errors=Plot.REPROJECTION_ERRORS in plot,
+        plot_scale_drift=Plot.SCALE_DRIFT in plot,
         plot_trajectory=Plot.TRAJECTORY in plot,
         camera_positions_ground_truth=camera_positions_ground_truth,
     )

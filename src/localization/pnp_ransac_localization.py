@@ -52,7 +52,7 @@ def pnp_ransac_localization_cv2(
             mask[inliers.flatten()] = True
         return mask
 
-    return T_C_W, inliers_to_mask(inliers), camera_position
+    return T_C_W, inliers_to_mask(inliers), camera_position.reshape(-1)
 
 
 # TODO: yields a rather large reprojection error sometimes (>500 or >1000px)

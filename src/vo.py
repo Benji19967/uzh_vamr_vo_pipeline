@@ -35,6 +35,7 @@ def run_vo(
     plot_landmarks: bool,
     plot_tracking: bool,
     plot_reprojection_errors: bool,
+    plot_scale_drift: bool,
     plot_trajectory: bool,
     camera_positions_ground_truth: list[np.ndarray] | None = None,
 ):
@@ -52,6 +53,7 @@ def run_vo(
         plot_landmarks,
         plot_tracking,
         plot_reprojection_errors,
+        plot_scale_drift,
         plot_trajectory,
     )
     P1, X1, C1, F1, T1 = initialize_state(p_I_keypoints_initial, p_W_landmarks_initial)
@@ -107,6 +109,9 @@ def run_vo(
         visualizer.keypoints_and_landmarks(P1, X1, C1, camera_positions, img_1)
     visualizer.trajectory(camera_positions, camera_positions_ground_truth)
     visualizer.reprojection_errors(reprojection_errors)
+    if plot_scale_drift:
+        assert camera_positions_ground_truth
+        visualizer.scale_drift(camera_positions, camera_positions_ground_truth)
 
 
 def add_new_candidate_keypoints(img_1: np.ndarray, P1, C1, F1, T1, T_C_W):

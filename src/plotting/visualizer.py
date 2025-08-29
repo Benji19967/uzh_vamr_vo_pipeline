@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 from src.plotting.keypoints import draw_keypoints, plot_keypoints
 from src.plotting.landmarks import plot_landmarks_top_view
 from src.plotting.reprojection_errors import plot_reprojection_errors
+from src.plotting.scale_drift import plot_scale_drift
 from src.plotting.tracking import plot_tracking_cv2
 from src.plotting.trajectory import plot_trajectory
 
@@ -16,6 +17,7 @@ class Visualizer:
         plot_landmarks=True,
         plot_tracking=False,
         plot_reprojection_errors=True,
+        plot_scale_drift=True,
         plot_trajectory=True,
     ):
         if plot_tracking and (plot_keypoints or plot_landmarks):
@@ -25,6 +27,7 @@ class Visualizer:
         self._plot_landmarks = plot_landmarks
         self._plot_tracking = plot_tracking
         self._plot_reprojection_errors = plot_reprojection_errors
+        self._plot_scale_drift = plot_scale_drift
         self._plot_trajectory = plot_trajectory
 
     def keypoints_and_landmarks(self, P1, X1, C1, camera_positions, image_1):
@@ -78,6 +81,14 @@ class Visualizer:
     def reprojection_errors(self, reprojection_errors: list[float]):
         if self._plot_reprojection_errors:
             plot_reprojection_errors(reprojection_errors)
+
+    def scale_drift(
+        self,
+        camera_positions_estimated: list[np.ndarray],
+        camera_positions_ground_truth: list[np.ndarray],
+    ):
+        if self._plot_scale_drift:
+            plot_scale_drift(camera_positions_estimated, camera_positions_ground_truth)
 
     def trajectory(
         self,
