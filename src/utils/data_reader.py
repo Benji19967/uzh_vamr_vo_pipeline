@@ -46,10 +46,19 @@ class DataReader(ABC):
             image = cls.read_image(id=id)
             utils.show_img(img=image.img)
 
+    @classmethod
+    @abstractmethod
+    def read_trajectory(cls) -> list[np.ndarray]:
+        """
+        Returns a list of camera positions [x, y, z]
+        """
+        raise NotImplementedError
+
 
 class KittiDataReader(DataReader):
     BASE_DIR = Path("data/kitti")
     IMAGES_DIR = BASE_DIR / "05" / "image_0"  # left image files
+    POSES_FILE = BASE_DIR / "poses" / "05.txt"
 
     def __init__(self) -> None:
         pass
@@ -58,10 +67,21 @@ class KittiDataReader(DataReader):
     def _filename_from_id(cls, id: int) -> str:
         return f"{id:06}.png"
 
+    @classmethod
+    def read_trajectory(cls) -> list[np.ndarray]:
+        camera_positions = []
+        with open(cls.POSES_FILE) as f:
+            for line in f:
+                pose = line.strip().split()
+                x, y, z = float(pose[3]), float(pose[7]), float(pose[11])
+                camera_positions.append(np.array([x, y, z]))
+        return camera_positions
+
 
 class MalagaDataReader(DataReader):
     BASE_DIR = Path("data/malaga-urban-dataset-extract-07")
     IMAGES_DIR = BASE_DIR / "Images"
+    POSES_FILE = BASE_DIR / "malaga-urban-dataset-extract-07_all-sensors_GPS.txt"
 
     @classmethod
     def _filename_from_id(cls, id: int) -> str:
@@ -75,10 +95,22 @@ class MalagaDataReader(DataReader):
             for full_filename in sorted(cls.IMAGES_DIR.glob("*left.jpg"))
         ]
 
+    @classmethod
+    def read_trajectory(cls) -> list[np.ndarray]:
+        camera_positions = []
+        with open(cls.POSES_FILE) as f:
+            f.readline()
+            for line in f:
+                pose = line.strip().split()
+                x, y, z = float(pose[8]), float(pose[9]), float(pose[10])
+                camera_positions.append(np.array([x, y, z]))
+        return camera_positions
+
 
 class ParkingDataReader(DataReader):
     BASE_DIR = Path("data/parking")
     IMAGES_DIR = BASE_DIR / "images"
+    POSES_FILE = BASE_DIR / "poses.txt"
 
     def __init__(self) -> None:
         pass
@@ -86,6 +118,16 @@ class ParkingDataReader(DataReader):
     @classmethod
     def _filename_from_id(cls, id: int) -> str:
         return f"img_{id:05}.png"
+
+    @classmethod
+    def read_trajectory(cls) -> list[np.ndarray]:
+        camera_positions = []
+        with open(cls.POSES_FILE) as f:
+            for line in f:
+                pose = line.strip().split(" ")
+                x, y, z = float(pose[3]), float(pose[7]), float(pose[11])
+                camera_positions.append(np.array([x, y, z]))
+        return camera_positions
 
 
 if __name__ == "__main__":
@@ -99,3 +141,6 @@ if __name__ == "__main__":
 
     for image in [image1, image2, *images]:
         utils.show_img(img=image.img)
+
+    for camera_position in KittiDataReader.read_trajectory():
+        print(camera_position)

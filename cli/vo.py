@@ -5,7 +5,7 @@ import typer
 
 from src.config import settings
 from src.initialize import initialize
-from src.utils.image_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
+from src.utils.data_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
 from src.vo import run_vo
 
 

@@ -1,7 +1,7 @@
 import src.vo as vo
 from src.config import settings
 from src.initialize import initialize
-from src.utils.image_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
+from src.utils.data_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
 
 
 def main() -> None:
@@ -22,6 +22,7 @@ def main() -> None:
         plot_keypoints=True,
         plot_landmarks=True,
         plot_tracking=False,
+        plot_trajectory=True,
     )
 
 

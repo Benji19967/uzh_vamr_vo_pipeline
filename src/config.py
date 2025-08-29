@@ -7,9 +7,9 @@ class Settings(BaseSettings):
     INITIALIZATION_SECOND_IMAGE_ID_MALAGA: int = 2
     INITIALIZATION_SECOND_IMAGE_ID_KITTI: int = 3
 
-    NUM_IMAGES_PARKING: int = 598
+    NUM_IMAGES_PARKING: int = 599
     NUM_IMAGES_MALAGA: int = 2121
-    NUM_IMAGES_KITTI: int = 2760
+    NUM_IMAGES_KITTI: int = 2761
 
     K_PARKING: np.ndarray = np.array(
         [
