@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 
 from src.plotting.keypoints import draw_keypoints, plot_keypoints
 from src.plotting.landmarks import plot_landmarks_top_view
+from src.plotting.reprojection_errors import plot_reprojection_errors
 from src.plotting.tracking import plot_tracking_cv2
 from src.plotting.trajectory import plot_trajectory
 
@@ -14,6 +15,7 @@ class Visualizer:
         plot_keypoints=True,
         plot_landmarks=True,
         plot_tracking=False,
+        plot_reprojection_errors=True,
         plot_trajectory=True,
     ):
         if plot_tracking and (plot_keypoints or plot_landmarks):
@@ -22,7 +24,8 @@ class Visualizer:
         self._plot_keypoints = plot_keypoints
         self._plot_landmarks = plot_landmarks
         self._plot_tracking = plot_tracking
-        self._trajectory = plot_trajectory
+        self._plot_reprojection_errors = plot_reprojection_errors
+        self._plot_trajectory = plot_trajectory
 
     def keypoints_and_landmarks(self, P1, X1, C1, camera_positions, image_1):
         """Plot keypoints and/or landmarks
@@ -72,10 +75,14 @@ class Visualizer:
         if self._plot_tracking:
             plot_tracking_cv2(C0, C1, image_0.shape)
 
+    def reprojection_errors(self, reprojection_errors: list[float]):
+        if self._plot_reprojection_errors:
+            plot_reprojection_errors(reprojection_errors)
+
     def trajectory(
         self,
         camera_positions_estimated: list[np.ndarray],
         camera_positions_ground_truth: list[np.ndarray] | None = None,
     ):
-        if self._trajectory:
+        if self._plot_trajectory:
             plot_trajectory(camera_positions_estimated, camera_positions_ground_truth)

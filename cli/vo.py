@@ -19,6 +19,7 @@ class Plot(str, Enum):
     KEYPOINTS = "keypoints"
     LANDMARKS = "landmarks"
     TRACKING = "tracking"
+    REPROJECTION_ERRORS = "reprojection_errors"
     TRAJECTORY = "trajectory"
 
 
@@ -27,6 +28,7 @@ def run(
     plot: Annotated[List[Plot], typer.Option()] = [
         Plot.KEYPOINTS,
         Plot.LANDMARKS,
+        Plot.REPROJECTION_ERRORS,
         Plot.TRAJECTORY,
     ],
     num_images: Annotated[Optional[int], typer.Option()] = None,
@@ -66,6 +68,7 @@ def run(
         plot_keypoints=Plot.KEYPOINTS in plot,
         plot_landmarks=Plot.LANDMARKS in plot,
         plot_tracking=Plot.TRACKING in plot,
+        plot_reprojection_errors=Plot.REPROJECTION_ERRORS in plot,
         plot_trajectory=Plot.TRAJECTORY in plot,
         camera_positions_ground_truth=camera_positions_ground_truth,
     )

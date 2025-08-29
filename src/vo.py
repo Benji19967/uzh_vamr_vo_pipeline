@@ -7,7 +7,7 @@ from src.features import keypoints
 from src.localization.pnp_ransac_localization import pnp_ransac_localization_cv2
 from src.mapping.reprojection_error import reprojection_error
 from src.mapping.triangulate_landmarks import triangulate_landmarks
-from src.plotting.plot import Visualizer
+from src.plotting.visualizer import Visualizer
 from src.tracking.klt import run_klt
 from src.utils import points
 from src.utils.masks import compose_masks
@@ -34,6 +34,7 @@ def run_vo(
     plot_keypoints: bool,
     plot_landmarks: bool,
     plot_tracking: bool,
+    plot_reprojection_errors: bool,
     plot_trajectory: bool,
     camera_positions_ground_truth: list[np.ndarray] | None = None,
 ):
@@ -47,11 +48,16 @@ def run_vo(
         - K np.ndarray(3, 3): camera matrix
     """
     visualizer = Visualizer(
-        plot_keypoints, plot_landmarks, plot_tracking, plot_trajectory
+        plot_keypoints,
+        plot_landmarks,
+        plot_tracking,
+        plot_reprojection_errors,
+        plot_trajectory,
     )
     P1, X1, C1, F1, T1 = initialize_state(p_I_keypoints_initial, p_W_landmarks_initial)
 
     camera_positions = []
+    reprojection_errors = []
     for i, (img_0, img_1) in enumerate(zip(images, images[1:])):
         logger.debug(f"Iteration: {i}")
 
@@ -95,10 +101,12 @@ def run_vo(
 
         # Evaluate results
         reproj_error = reprojection_error(points.to_hom(X1), P1, T_C_W, K)
+        reprojection_errors.append(reproj_error)
         logger.debug(f"Reprojection error landmarks: {reproj_error}")
 
         visualizer.keypoints_and_landmarks(P1, X1, C1, camera_positions, img_1)
     visualizer.trajectory(camera_positions, camera_positions_ground_truth)
+    visualizer.reprojection_errors(reprojection_errors)
 
 
 def add_new_candidate_keypoints(img_1: np.ndarray, P1, C1, F1, T1, T_C_W):

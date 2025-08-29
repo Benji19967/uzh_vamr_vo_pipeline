@@ -22,6 +22,7 @@ def main() -> None:
         plot_keypoints=True,
         plot_landmarks=True,
         plot_tracking=False,
+        plot_reprojection_errors=True,
         plot_trajectory=True,
         camera_positions_ground_truth=DataReader.read_trajectory(),
     )
