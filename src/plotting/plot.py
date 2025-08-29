@@ -1,9 +1,11 @@
 import cv2
+import numpy as np
 from matplotlib import pyplot as plt
 
 from src.plotting.keypoints import draw_keypoints, plot_keypoints
 from src.plotting.landmarks import plot_landmarks_top_view
 from src.plotting.tracking import plot_tracking_cv2
+from src.plotting.trajectory import plot_trajectory
 
 
 class Visualizer:
@@ -12,6 +14,7 @@ class Visualizer:
         plot_keypoints=True,
         plot_landmarks=True,
         plot_tracking=False,
+        plot_trajectory=True,
     ):
         if plot_tracking and (plot_keypoints or plot_landmarks):
             raise ValueError("Cannot plot tracking with other plots")
@@ -19,9 +22,10 @@ class Visualizer:
         self._plot_keypoints = plot_keypoints
         self._plot_landmarks = plot_landmarks
         self._plot_tracking = plot_tracking
+        self._trajectory = plot_trajectory
 
     def keypoints_and_landmarks(self, P1, X1, C1, camera_positions, image_1):
-        """Plot
+        """Plot keypoints and/or landmarks
 
         Args:
             P1 (_type_): _description_
@@ -67,3 +71,7 @@ class Visualizer:
     def tracking(self, C0, C1, image_0):
         if self._plot_tracking:
             plot_tracking_cv2(C0, C1, image_0.shape)
+
+    def trajectory(self, camera_positions: list[np.ndarray]):
+        if self._trajectory:
+            plot_trajectory(camera_positions)

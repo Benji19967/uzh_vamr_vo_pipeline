@@ -19,11 +19,17 @@ class Plot(str, Enum):
     KEYPOINTS = "keypoints"
     LANDMARKS = "landmarks"
     TRACKING = "tracking"
+    TRAJECTORY = "trajectory"
 
 
 def run(
     dataset: Annotated[Dataset, typer.Option()],
-    plot: Annotated[List[Plot], typer.Option()] = [Plot.KEYPOINTS, Plot.LANDMARKS],
+    plot: Annotated[List[Plot], typer.Option()] = [
+        Plot.KEYPOINTS,
+        Plot.LANDMARKS,
+        Plot.TRAJECTORY,
+    ],
+    num_images: Annotated[Optional[int], typer.Option()] = None,
 ) -> None:
     if dataset == Dataset.PARKING:
         DataReader = ParkingDataReader
@@ -41,6 +47,8 @@ def run(
         NUM_IMAGES = settings.NUM_IMAGES_KITTI
         SECOND_IMAGE_ID = settings.INITIALIZATION_SECOND_IMAGE_ID_KITTI
 
+    NUM_IMAGES = num_images or NUM_IMAGES
+
     image_0 = DataReader.read_image(id=0)
     image_1 = DataReader.read_image(id=SECOND_IMAGE_ID)
     p1_I_keypoints, _, p_W_landmarks = initialize(image_0, image_1, K=K)
@@ -54,4 +62,5 @@ def run(
         plot_keypoints=Plot.KEYPOINTS in plot,
         plot_landmarks=Plot.LANDMARKS in plot,
         plot_tracking=Plot.TRACKING in plot,
+        plot_trajectory=Plot.TRAJECTORY in plot,
     )
