@@ -34,13 +34,11 @@ class Visualizer:
         """Plot keypoints and/or landmarks
 
         Args:
-            P1 (_type_): _description_
-            X1 (_type_): _description_
-            C0 (_type_): _description_
-            C1 (_type_): _description_
-            camera_positions (_type_): _description_
-            image_0 (_type_): _description_
-            image_1 (_type_): _description_
+            P1: np.ndarray(2, N): Current keypoints.
+            X1: np.ndarray(3, N): Current landmarks.
+            C1: np.ndarray(2, M): Current candidate keypoints.
+            camera_positions List[np.ndarray(3,)]: camera position (x, y, z) at each frame
+            image_1 np.ndarray: current frame
         """
         if self._plot_keypoints and self._plot_landmarks:
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))

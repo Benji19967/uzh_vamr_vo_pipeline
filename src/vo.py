@@ -23,6 +23,7 @@ MAX_NUM_CANDIDATE_KEYPOINTS = 1000
 MAX_NUM_NEW_CANDIDATE_KEYPOINTS = 1000
 MAX_REPROJECTION_ERROR = 5  # pixels
 MIN_ANGLE_TO_TRIANGULATE = 5.0  # degrees
+MIN_NUM_LANDMARKS_FOR_LOCALIZATION = 4
 KEYFRAME_INTERVAL = 5  # Process every ith image as a keyframe
 
 
@@ -77,7 +78,7 @@ def run_vo(
         logger.debug(f"After klt: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
         # Localize: compute camera pose
-        if P1.shape[1] < 4:
+        if P1.shape[1] < MIN_NUM_LANDMARKS_FOR_LOCALIZATION:
             raise ValueError(f"Not enough keypoints/landmarks for localization")
         try:
             T_C_W, best_inlier_mask, camera_position = pnp_ransac_localization_cv2(
