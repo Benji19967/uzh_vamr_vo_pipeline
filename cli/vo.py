@@ -35,21 +35,22 @@ def run(
     ],
     num_images: Annotated[Optional[int], typer.Option()] = None,
 ) -> None:
-    if dataset == Dataset.PARKING:
-        DataReader = ParkingDataReader
-        K = settings.K_PARKING
-        NUM_IMAGES = settings.NUM_IMAGES_PARKING
-        SECOND_IMAGE_ID = settings.INITIALIZATION_SECOND_IMAGE_ID_PARKING
-    elif dataset == Dataset.MALAGA:
-        DataReader = MalagaDataReader
-        K = settings.K_MALAGA
-        NUM_IMAGES = settings.NUM_IMAGES_MALAGA
-        SECOND_IMAGE_ID = settings.INITIALIZATION_SECOND_IMAGE_ID_MALAGA
-    elif dataset == Dataset.KITTI:
-        DataReader = KittiDataReader
-        K = settings.K_KITTI
-        NUM_IMAGES = settings.NUM_IMAGES_KITTI
-        SECOND_IMAGE_ID = settings.INITIALIZATION_SECOND_IMAGE_ID_KITTI
+    match dataset:
+        case Dataset.PARKING:
+            DataReader = ParkingDataReader
+            K = settings.K_PARKING
+            NUM_IMAGES = settings.NUM_IMAGES_PARKING
+            SECOND_IMAGE_ID = settings.INITIALIZATION_SECOND_IMAGE_ID_PARKING
+        case Dataset.MALAGA:
+            DataReader = MalagaDataReader
+            K = settings.K_MALAGA
+            NUM_IMAGES = settings.NUM_IMAGES_MALAGA
+            SECOND_IMAGE_ID = settings.INITIALIZATION_SECOND_IMAGE_ID_MALAGA
+        case Dataset.KITTI:
+            DataReader = KittiDataReader
+            K = settings.K_KITTI
+            NUM_IMAGES = settings.NUM_IMAGES_KITTI
+            SECOND_IMAGE_ID = settings.INITIALIZATION_SECOND_IMAGE_ID_KITTI
 
     NUM_IMAGES = num_images or NUM_IMAGES
 
