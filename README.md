@@ -5,6 +5,9 @@
 1. Install the requirements in a Python venv
 2. Activate the environment
 3. `python src/main.py`
+4. Download the parking dataset:
+  - `make data/parking`
+
 
 ## Using the CLI
 

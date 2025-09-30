@@ -15,3 +15,8 @@ venv:
 
 clean:
 	rm -rf venv
+
+data/parking:
+	mkdir -p data
+	wget https://rpg.ifi.uzh.ch/docs/teaching/2024/parking.zip -O data/parking.zip
+	unzip data/parking.zip -d data
