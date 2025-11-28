@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+import cv2
 import numpy as np
 
 from src.exceptions import FailedLocalizationError
@@ -54,7 +55,7 @@ def run_vo(
         - K np.ndarray(3, 3): camera matrix
     """
     with open(BA_DATA_FILENAME, "w") as f:
-        f.write(f"{len(images) / KEYFRAME_INTERVAL}\n")
+        f.write(f"{len(images) // KEYFRAME_INTERVAL}\n")
 
     visualizer = Visualizer(
         plot_keypoints,
@@ -104,9 +105,13 @@ def run_vo(
         if i % KEYFRAME_INTERVAL == 0:
             C1, F1, T1 = add_new_candidate_keypoints(img_1, P1, C1, F1, T1, T_C_W)
             P1, X1, C1, F1, T1 = add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K)
+            R = T_C_W[:3, :3]
+            rvec, _ = cv2.Rodrigues(R)
+            tvec = T_C_W[:3, 3]
             with open(BA_DATA_FILENAME, "a+") as f:
                 f.write(f"{X1.shape[1]}\n")
-                np.savetxt(f, T_C_W.flatten())
+                np.savetxt(f, rvec)
+                np.savetxt(f, tvec.T)
                 np.savetxt(f, P1.T)
                 np.savetxt(f, X1.T)
         if C1.shape[1] > MAX_NUM_CANDIDATE_KEYPOINTS:
