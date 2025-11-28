@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import numpy as np
 
@@ -18,6 +19,9 @@ np.set_printoptions(suppress=True)
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+HERE = Path(__file__).parent
+BA_DATA_FILENAME = HERE / ".." / "ba_data" / "ba_data.txt"
 
 MAX_NUM_CANDIDATE_KEYPOINTS = 1000
 MAX_NUM_NEW_CANDIDATE_KEYPOINTS = 1000
@@ -49,6 +53,9 @@ def run_vo(
         - p_W_landmarks_initial: np.ndarray(3, N) | (x,y,z)
         - K np.ndarray(3, 3): camera matrix
     """
+    with open(BA_DATA_FILENAME, "w") as f:
+        f.write(f"{len(images) / KEYFRAME_INTERVAL}\n")
+
     visualizer = Visualizer(
         plot_keypoints,
         plot_landmarks,
@@ -97,6 +104,11 @@ def run_vo(
         if i % KEYFRAME_INTERVAL == 0:
             C1, F1, T1 = add_new_candidate_keypoints(img_1, P1, C1, F1, T1, T_C_W)
             P1, X1, C1, F1, T1 = add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K)
+            with open(BA_DATA_FILENAME, "a+") as f:
+                f.write(f"{X1.shape[1]}\n")
+                np.savetxt(f, T_C_W.flatten())
+                np.savetxt(f, P1.T)
+                np.savetxt(f, X1.T)
         if C1.shape[1] > MAX_NUM_CANDIDATE_KEYPOINTS:
             C1 = C1[:, -MAX_NUM_CANDIDATE_KEYPOINTS:]
             F1 = F1[:, -MAX_NUM_CANDIDATE_KEYPOINTS:]
