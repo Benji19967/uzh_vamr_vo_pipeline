@@ -48,9 +48,18 @@ p_W_hom = np.ndarray(
     - More efficient computationally
     - Interesting point: returning the new candidate keypoints in random order (shuffling) seems to increase drift.
 
+
 ## Demo (takes a few seconds to load)
 
 - There is __scale drift__ because this is a monocular setup: final camera position is (374.50, -1.51, 43.06) but expected is (89.70, 0, 0)
   - To try: implement bundle adjustment
 
 ![Parking VO](assets/parking_00.gif)
+
+## Evaluation
+
+![Camera Trajectory](assets/camera_trajectory.png)
+
+![Reprojection Error](assets/reprojection_error.png)
+
+![Scale Drift](assets/scale_drift.png)
