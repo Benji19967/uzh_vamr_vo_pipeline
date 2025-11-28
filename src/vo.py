@@ -3,6 +3,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import polars as pl
 
 from src.exceptions import FailedLocalizationError
 from src.features import keypoints
@@ -67,6 +68,13 @@ def run_vo(
     )
     P1, X1, C1, F1, T1 = initialize_state(p_I_keypoints_initial, p_W_landmarks_initial)
 
+    observations = pl.DataFrame({"camera_idx": [], "point_idx": [], "u": [], "v": []})
+    # camera_params = pl.DataFrame(
+    #     {"r1": [], "r2": [], "r3": [], "t1": [], "t2": [], "t3": []}
+    # )
+    camera_params = pl.DataFrame({"rvec": [], "tvec": []})
+    point_params = pl.DataFrame({"x": [], "y": [], "z": []})
+
     camera_positions = []
     reprojection_errors = []
     for i, (img_0, img_1) in enumerate(zip(images, images[1:])):
@@ -92,6 +100,12 @@ def run_vo(
             T_C_W, best_inlier_mask, camera_position = pnp_ransac_localization_cv2(
                 P1, X1, K
             )
+            R = T_C_W[:3, :3]
+            rvec, _ = cv2.Rodrigues(R)
+            tvec = T_C_W[:3, 3]
+            camera_params.vstack(
+                pl.DataFrame([{"rvec": rvec, "tvec": tvec}]), in_place=True
+            )
         except FailedLocalizationError:
             logger.debug(f"Failed Ransac localization")
             continue
@@ -105,9 +119,6 @@ def run_vo(
         if i % KEYFRAME_INTERVAL == 0:
             C1, F1, T1 = add_new_candidate_keypoints(img_1, P1, C1, F1, T1, T_C_W)
             P1, X1, C1, F1, T1 = add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K)
-            R = T_C_W[:3, :3]
-            rvec, _ = cv2.Rodrigues(R)
-            tvec = T_C_W[:3, 3]
             with open(BA_DATA_FILENAME, "a+") as f:
                 f.write(f"{X1.shape[1]}\n")
                 np.savetxt(f, rvec)
@@ -125,6 +136,9 @@ def run_vo(
         logger.debug(f"Reprojection error landmarks: {reproj_error}")
 
         visualizer.keypoints_and_landmarks(P1, X1, C1, camera_positions, img_1)
+
+    camera_params.rechunk()
+
     visualizer.trajectory(camera_positions, camera_positions_ground_truth)
     visualizer.reprojection_errors(reprojection_errors)
     if plot_scale_drift:
@@ -160,8 +174,8 @@ def add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K):
 
     Requirements to find a new landmark:
 
-    1. Bearing angle > threshold
-    2. Reprojection error < threshold
+    1. Bearing angle > some threshold
+    2. Reprojection error < some other threshold
     3. Is not an outlier when using RANSAC
 
     Args:

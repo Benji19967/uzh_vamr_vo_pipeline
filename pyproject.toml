@@ -26,6 +26,7 @@ typing-extensions = "^4.4.0"
 typer = "^0.15.1"
 pydantic = "^2.11.7"
 pydantic-settings = "^2.10.1"
+polars = "^1.35.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.1"
