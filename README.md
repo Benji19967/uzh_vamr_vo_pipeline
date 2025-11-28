@@ -18,7 +18,7 @@ vo run --dataset parking
 
 ## Conventions
 
-Points are stored as __column vectors__ to facilitate the matrix multiplications in the linear algebra.
+Points are stored as __column vectors__ to facilitate linear algebra matrix multiplications.
 
 __Notation__: 
 
