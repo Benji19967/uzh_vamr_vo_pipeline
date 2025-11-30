@@ -1,32 +1,10 @@
-import src.vo as vo
-from src.config import settings
-from src.initialize import initialize
-from src.utils.data_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
+"""
+Use the CLI instead of main.
+"""
 
 
 def main() -> None:
-    DataReader = ParkingDataReader
-    K = settings.K_PARKING
-    NUM_IMAGES = settings.NUM_IMAGES_PARKING
-
-    image_0 = DataReader.read_image(id=0)
-    image_1 = DataReader.read_image(id=2)
-    p1_I_keypoints, _, p_W_landmarks = initialize(image_0, image_1, K=K)
-
-    images = DataReader.read_imgs(end_id=NUM_IMAGES)
-    vo.run_vo(
-        images=images,
-        p_I_keypoints_initial=p1_I_keypoints,
-        p_W_landmarks_initial=p_W_landmarks,
-        K=K,
-        plot_keypoints=True,
-        plot_landmarks=True,
-        plot_tracking=False,
-        plot_reprojection_errors=True,
-        plot_scale_drift=True,
-        plot_trajectory=True,
-        camera_positions_ground_truth=DataReader.read_trajectory(),
-    )
+    pass
 
 
 if __name__ == "__main__":
