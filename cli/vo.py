@@ -1,27 +1,13 @@
-from enum import Enum
 from typing import Annotated, List, Optional
 
 import typer
 
 from src.config import settings
+from src.enums import Dataset, Plot
 from src.initialize import initialize
+from src.plotting.visualizer import Visualizer
 from src.utils.data_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
-from src.vo import run_vo
-
-
-class Dataset(str, Enum):
-    PARKING = "parking"
-    MALAGA = "malaga"
-    KITTI = "kitti"
-
-
-class Plot(str, Enum):
-    KEYPOINTS = "keypoints"
-    LANDMARKS = "landmarks"
-    TRACKING = "tracking"
-    REPROJECTION_ERRORS = "reprojection-errors"
-    SCALE_DRIFT = "scale-drift"
-    TRAJECTORY = "trajectory"
+from src.vo import VOPipeline
 
 
 def run(
@@ -38,25 +24,21 @@ def run(
     match dataset:
         case Dataset.PARKING:
             DataReader = ParkingDataReader
-            K = settings.K_PARKING
-            NUM_IMAGES = settings.NUM_IMAGES_PARKING
-            SECOND_IMAGE_ID = settings.INITIALIZATION_SECOND_IMAGE_ID_PARKING
+            dataset_settings = settings.dataset.parking
         case Dataset.MALAGA:
             DataReader = MalagaDataReader
-            K = settings.K_MALAGA
-            NUM_IMAGES = settings.NUM_IMAGES_MALAGA
-            SECOND_IMAGE_ID = settings.INITIALIZATION_SECOND_IMAGE_ID_MALAGA
+            dataset_settings = settings.dataset.malaga
         case Dataset.KITTI:
             DataReader = KittiDataReader
-            K = settings.K_KITTI
-            NUM_IMAGES = settings.NUM_IMAGES_KITTI
-            SECOND_IMAGE_ID = settings.INITIALIZATION_SECOND_IMAGE_ID_KITTI
+            dataset_settings = settings.dataset.kitti
 
-    NUM_IMAGES = num_images or NUM_IMAGES
+    NUM_IMAGES = num_images or dataset_settings.num_images
 
     image_0 = DataReader.read_image(id=0)
-    image_1 = DataReader.read_image(id=SECOND_IMAGE_ID)
-    p1_I_keypoints, _, p_W_landmarks = initialize(image_0, image_1, K=K)
+    image_1 = DataReader.read_image(id=dataset_settings.initialization_second_image_id)
+    p1_I_keypoints, _, p_W_landmarks = initialize(
+        image_0, image_1, K=dataset_settings.k
+    )
 
     plot_trajectory = Plot.TRAJECTORY in plot
     plot_scale_drift = Plot.SCALE_DRIFT in plot
@@ -64,16 +46,18 @@ def run(
         DataReader.read_trajectory() if (plot_trajectory or plot_scale_drift) else None
     )
     images = DataReader.read_imgs(end_id=NUM_IMAGES)
-    run_vo(
-        images=images,
-        p_I_keypoints_initial=p1_I_keypoints,
-        p_W_landmarks_initial=p_W_landmarks,
-        K=K,
+    visualizer = Visualizer(
         plot_keypoints=Plot.KEYPOINTS in plot,
         plot_landmarks=Plot.LANDMARKS in plot,
         plot_tracking=Plot.TRACKING in plot,
         plot_reprojection_errors=Plot.REPROJECTION_ERRORS in plot,
         plot_scale_drift=Plot.SCALE_DRIFT in plot,
         plot_trajectory=Plot.TRAJECTORY in plot,
+    )
+    VOPipeline(visualizer=visualizer).run(
+        images=images,
+        p_I_keypoints_initial=p1_I_keypoints,
+        p_W_landmarks_initial=p_W_landmarks,
+        K=dataset_settings.k,
         camera_positions_ground_truth=camera_positions_ground_truth,
     )
