@@ -1,7 +1,11 @@
+from typing import TypeVar
+
 import cv2
 import numpy as np
 
-from src.utils.points import from_cv2, to_cv2
+from src.structures.keypoints2D import BaseKeypoints2D
+
+T = TypeVar("T", bound=BaseKeypoints2D)
 
 KLT_PARAMS = dict(
     winSize=(15, 15),
@@ -10,7 +14,9 @@ KLT_PARAMS = dict(
 )
 
 
-def run_klt(image_0: np.ndarray, image_1: np.ndarray, p0_I_keypoints: np.ndarray):
+def run_klt(
+    image_0: np.ndarray, image_1: np.ndarray, keypoints: T
+) -> tuple[T, np.ndarray]:
     """
     Run KLT on the images: track keypoints from image_0 to image_1
 
@@ -25,9 +31,8 @@ def run_klt(image_0: np.ndarray, image_1: np.ndarray, p0_I_keypoints: np.ndarray
     """
 
     # calculate optical flow
-    p0_I_keypoints_cv2 = to_cv2(p0_I_keypoints)
-    p1_I_keypoints_cv2, status, err = cv2.calcOpticalFlowPyrLK(  # type: ignore
-        image_0, image_1, p0_I_keypoints_cv2, None, **KLT_PARAMS
+    keypoints_cv2, status, err = cv2.calcOpticalFlowPyrLK(  # type: ignore
+        image_0, image_1, keypoints.to_cv2(), None, **KLT_PARAMS
     )
 
     def from_cv2_status(st):
@@ -37,12 +42,13 @@ def run_klt(image_0: np.ndarray, image_1: np.ndarray, p0_I_keypoints: np.ndarray
         """
         return st.T[0]
 
-    if p1_I_keypoints_cv2 is None:
+    keypoints = keypoints.__class__.from_cv2(keypoints_cv2)
+    if keypoints_cv2 is None:
         return (
-            np.zeros((2, 0), dtype=np.int32),
+            keypoints,
             np.full((0), False),
         )
     return (
-        from_cv2(p1_I_keypoints_cv2),
+        keypoints,
         from_cv2_status(st=status).astype(np.bool8),
     )

@@ -5,6 +5,7 @@ import typer
 from src.config import settings
 from src.enums import Dataset, Plot
 from src.initialize import initialize
+from src.io.ba_exporter import BAExporter
 from src.plotting.visualizer import Visualizer
 from src.utils.data_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
 from src.vo import VOPipeline
@@ -54,7 +55,7 @@ def run(
         plot_scale_drift=Plot.SCALE_DRIFT in plot,
         plot_trajectory=Plot.TRAJECTORY in plot,
     )
-    VOPipeline(visualizer=visualizer).run(
+    VOPipeline(visualizer=visualizer, ba_exporter=BAExporter()).run(
         images=images,
         p_I_keypoints_initial=p1_I_keypoints,
         p_W_landmarks_initial=p_W_landmarks,
