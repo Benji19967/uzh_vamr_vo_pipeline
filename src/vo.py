@@ -10,6 +10,7 @@ from src.localization.pnp_ransac_localization import pnp_ransac_localization_cv2
 from src.mapping.reprojection_error import reprojection_error
 from src.mapping.triangulate_landmarks import triangulate_landmarks
 from src.plotting.visualizer import Visualizer
+from src.structures.landmarks3D import Landmarks3D
 from src.tracking.klt import run_klt
 from src.utils import points
 from src.utils.masks import compose_masks
@@ -56,7 +57,7 @@ class VOPipeline:
         with open(BA_DATA_FILENAME, "w") as f:
             f.write(f"{len(images) // KEYFRAME_INTERVAL}\n")
 
-        P1, X1, C1, F1, T1 = self.initialize_state(
+        P1, landmarks, C1, F1, T1 = self.initialize_state(
             p_I_keypoints_initial, p_W_landmarks_initial
         )
 
@@ -66,8 +67,9 @@ class VOPipeline:
             logger.debug(f"Iteration: {i}")
 
             # Track keypoints from img_0 to img_1
-            P1, status_mask = run_klt(img_0, img_1, P1)
-            P1, X1 = points.apply_mask_many([P1, X1], status_mask)
+            P1, tracked_mask = run_klt(img_0, img_1, P1)
+            P1 = points.apply_mask(P1, tracked_mask)
+            landmarks.keep(tracked_mask)
 
             # Track candidate keypoints from img_0 to img_1
             C0 = C1
@@ -76,21 +78,26 @@ class VOPipeline:
                 [C0, C1, F1, T1], status_mask_candiate_kps
             )
             self.visualizer.tracking(C0, C1, img_0)
-            logger.debug(f"After klt: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
+            logger.debug(
+                f"After klt: P1: {P1.shape}, landmarks: {landmarks.shape}, C1: {C1.shape}"
+            )
 
             # Localize: compute camera pose
             if P1.shape[1] < MIN_NUM_LANDMARKS_FOR_LOCALIZATION:
                 raise ValueError(f"Not enough keypoints/landmarks for localization")
             try:
                 T_C_W, best_inlier_mask, camera_position = pnp_ransac_localization_cv2(
-                    P1, X1, K
+                    P1, landmarks.array, K
                 )
             except FailedLocalizationError:
                 logger.debug(f"Failed Ransac localization")
                 continue
-            P1, X1 = points.apply_mask_many([P1, X1], best_inlier_mask)
+            P1 = points.apply_mask(P1, best_inlier_mask)
+            landmarks.keep(best_inlier_mask)
             camera_positions.append(camera_position)
-            logger.debug(f"After ran: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
+            logger.debug(
+                f"After ran: P1: {P1.shape}, landmarks: {landmarks.shape}, C1: {C1.shape}"
+            )
             logger.debug(f"Pose:\n {T_C_W}")
             logger.debug(f"Camera position: {camera_position.flatten()}")
 
@@ -99,29 +106,31 @@ class VOPipeline:
                 C1, F1, T1 = self.add_new_candidate_keypoints(
                     img_1, P1, C1, F1, T1, T_C_W
                 )
-                P1, X1, C1, F1, T1 = self.add_new_landmarks(
-                    P1, X1, C1, F1, T1, T_C_W, K
+                P1, landmarks, C1, F1, T1 = self.add_new_landmarks(
+                    P1, landmarks, C1, F1, T1, T_C_W, K
                 )
                 R = T_C_W[:3, :3]
                 rvec, _ = cv2.Rodrigues(R)  # type: ignore
                 tvec = T_C_W[:3, 3]
                 with open(BA_DATA_FILENAME, "a+") as f:
-                    f.write(f"{X1.shape[1]}\n")
+                    f.write(f"{landmarks.shape[1]}\n")
                     np.savetxt(f, rvec)
                     np.savetxt(f, tvec.T)
                     np.savetxt(f, P1.T)
-                    np.savetxt(f, X1.T)
+                    np.savetxt(f, landmarks.array.T)
             if C1.shape[1] > MAX_NUM_CANDIDATE_KEYPOINTS:
                 C1 = C1[:, -MAX_NUM_CANDIDATE_KEYPOINTS:]
                 F1 = F1[:, -MAX_NUM_CANDIDATE_KEYPOINTS:]
                 T1 = T1[:, -MAX_NUM_CANDIDATE_KEYPOINTS:]
 
             # Evaluate results
-            reproj_error = reprojection_error(points.to_hom(X1), P1, T_C_W, K)
+            reproj_error = reprojection_error(landmarks.array_hom, P1, T_C_W, K)
             reprojection_errors.append(reproj_error)
             logger.debug(f"Reprojection error landmarks: {reproj_error}")
 
-            self.visualizer.keypoints_and_landmarks(P1, X1, C1, camera_positions, img_1)
+            self.visualizer.keypoints_and_landmarks(
+                P1, landmarks.array, C1, camera_positions, img_1
+            )
         self.visualizer.trajectory(camera_positions, camera_positions_ground_truth)
         self.visualizer.reprojection_errors(reprojection_errors)
         if self.visualizer._plot_scale_drift:
@@ -150,7 +159,7 @@ class VOPipeline:
         ]
         return C1, F1, T1
 
-    def add_new_landmarks(self, P1, X1, C1, F1, T1, T_C_W, K):
+    def add_new_landmarks(self, P1, landmarks, C1, F1, T1, T_C_W, K):
         """
         Add new landmarks to the current set of landmarks.
         Remove the corresponding candidate keypoints from the current set.
@@ -163,7 +172,7 @@ class VOPipeline:
 
         Args:
             P1: np.ndarray(2, N): Current keypoints.
-            X1: np.ndarray(3, N): Current landmarks.
+            landmarks: Landmarks3D: Current landmarks.
             C1: np.ndarray(2, M): Current candidate keypoints.
             F1: np.ndarray(2, M): First track of current candidate keypoints.
             T1: np.ndarray(12, M): Camera poses at first track of current candidate keypoints.
@@ -171,7 +180,7 @@ class VOPipeline:
             K: np.ndarray(3, 3): Camera intrinsic matrix.
         Returns:
             P1: np.ndarray(2, N): Updated keypoints.
-            X1: np.ndarray(3, N): Updated landmarks.
+            landmarks: Landmarks3D: Updated landmarks.
             C1: np.ndarray(2, M): Updated candidate keypoints.
         """
         assert F1.any()
@@ -202,10 +211,10 @@ class VOPipeline:
             )
 
             P1 = np.c_[P1, C1_triangulated_inliers]
-            X1 = np.c_[X1, p_W_new_landmarks_inliers]
+            landmarks.add(p_W_new_landmarks_inliers)
             C1, F1, T1 = points.apply_mask_many([C1, F1, T1], ~mask_new_landmarks)
 
-        return P1, X1, C1, F1, T1
+        return P1, landmarks, C1, F1, T1
 
     def multiply_T(self, T_C_W_flat, num_new_candidate_keypoints):
         """
@@ -235,18 +244,18 @@ class VOPipeline:
         S1 = (P1,X1,C1,F1,T1)
 
         P1: np.ndarray(2, N): Current keypoints.
-        X1: np.ndarray(3, N): Current landmarks.
+        landmarks: Landmarks3D: Current landmarks.
         C1: np.ndarray(2, M): Current candidate keypoints.
         F1: np.ndarray(2, M): First track of current candidate keypoints.
         T1: np.ndarray(12, M): Camera poses at first track of current candidate keypoints.
         """
         P1 = p_I_keypoints_initial
-        X1 = p_W_landmarks_initial
+        landmarks = Landmarks3D(array=p_W_landmarks_initial)
         C1 = np.zeros((2, 0), dtype=np.int32)
         F1 = np.zeros((2, 0), dtype=np.int32)
         T1 = np.zeros((12, 0), dtype=np.int32)
 
-        return P1, X1, C1, F1, T1
+        return P1, landmarks, C1, F1, T1
 
     def get_T_C_W_flat(self, T_C_W):
         """

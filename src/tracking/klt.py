@@ -15,8 +15,8 @@ def run_klt(image_0: np.ndarray, image_1: np.ndarray, p0_I_keypoints: np.ndarray
     Run KLT on the images: track keypoints from image_0 to image_1
 
     Args:
-        - image_0 Image
-        - image_1 Image
+        - image_0 np.ndarray
+        - image_1 np.ndarray
         - p0_I_keypoints np.ndarray(2,N) | (x,y)
 
     Returns:
