@@ -2,12 +2,15 @@ from typing import Type, TypeVar
 
 import numpy as np
 
-from src.structures.base_point import BasePoints
+from src.structures.base_point import ArrayXxN, BasePoints
 
 T = TypeVar("T", bound="BaseKeypoints2D")
 
 
 class BaseKeypoints2D(BasePoints):
+    """
+    (2xN) keypoints in pixel coordinates (x, y),
+    """
 
     def to_cv2(self) -> np.ndarray:
         """
@@ -38,8 +41,20 @@ class BaseKeypoints2D(BasePoints):
 
 
 class Keypoints2D(BaseKeypoints2D):
-    pass
+
+    def __init__(self, array: ArrayXxN = np.empty((2, 0))) -> None:
+        super().__init__(array)
 
 
 class CandidateKeypoints2D(BaseKeypoints2D):
     pass
+
+
+# class Obervations2D(BaseKeypoints2D):
+#     """
+#     Observations of landmarks
+#     """
+
+#     @classmethod
+#     def from_keypoints(cls, keypoints: Keypoints2D) -> "Obervations2D":
+#         return Obervations2D(keypoints.array)

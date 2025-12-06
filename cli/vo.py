@@ -37,9 +37,7 @@ def run(
 
     image_0 = DataReader.read_image(id=0)
     image_1 = DataReader.read_image(id=dataset_settings.initialization_second_image_id)
-    p1_I_keypoints, _, p_W_landmarks = initialize(
-        image_0, image_1, K=dataset_settings.k
-    )
+    keypoints, _, landmarks = initialize(image_0, image_1, K=dataset_settings.k)
 
     plot_trajectory = Plot.TRAJECTORY in plot
     plot_scale_drift = Plot.SCALE_DRIFT in plot
@@ -57,8 +55,8 @@ def run(
     )
     VOPipeline(visualizer=visualizer, ba_exporter=BAExporter()).run(
         images=images,
-        p_I_keypoints_initial=p1_I_keypoints,
-        p_W_landmarks_initial=p_W_landmarks,
+        keypoints_initial=keypoints,
+        landmarks_initial=landmarks,
         K=dataset_settings.k,
         camera_positions_ground_truth=camera_positions_ground_truth,
     )

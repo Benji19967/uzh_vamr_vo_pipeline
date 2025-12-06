@@ -1,10 +1,12 @@
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Type, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 
 ArrayXxN = Annotated[npt.NDArray[np.int32], Literal[2 | 3, "N"]]
 ArrayBooleanN = Annotated[npt.NDArray[np.bool_], Literal["N"]]
+
+T = TypeVar("T", bound="BasePoints")
 
 
 class BasePoints:
@@ -19,9 +21,9 @@ class BasePoints:
         """Keep the last n points"""
         self._array = self.array[:, -n:]
 
-    def filtered(self, mask: ArrayBooleanN) -> "BasePoints":
+    def filtered(self: T, mask: ArrayBooleanN) -> T:
         if self._array.any():
-            return BasePoints(self._array[:, mask])
+            return self.__class__(self._array[:, mask])
         raise ValueError("Array not set")
 
     def add(self, points: "BasePoints" | ArrayXxN) -> None:
