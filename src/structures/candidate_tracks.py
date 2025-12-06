@@ -21,6 +21,20 @@ class CandidateTracks:
         return self._poses_at_initial_uv
 
     def get_TCWs_at_intial_coords(self) -> np.ndarray:
+        """
+        Flatten:
+
+        From (3, 4):
+
+        r11 r12 r13 tx
+        r21 r22 r23 ty
+        r31 r32 r33 tz
+
+        to (1, 12):
+
+        r11 r12 r13 tx r21 r22 r23 ty r31 r32 r33 tz
+        """
+
         TCWs = [p.T_C_W.flatten() for p in self._poses_at_initial_uv]
         return np.column_stack(TCWs)
 

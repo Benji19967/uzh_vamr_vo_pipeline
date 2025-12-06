@@ -2,15 +2,6 @@ import numpy as np
 from pydantic_settings import BaseSettings
 
 
-class PlotSettings(BaseSettings):
-    plot_keypoints: bool
-    plot_landmarks: bool
-    plot_tracking: bool
-    plot_reprojection_errors: bool
-    plot_scale_drift: bool
-    plot_trajectory: bool
-
-
 class ParkingSettings:
     initialization_second_image_id: int = 2
     num_images: int = 599
@@ -55,7 +46,6 @@ class DatasetSettings:
 
 class Settings(BaseSettings):
     dataset: DatasetSettings = DatasetSettings()
-    # plotting: PlotSettings = PlotSettings()
 
 
 settings = Settings()

@@ -161,8 +161,8 @@ class VOPipeline:
     def add_new_candidate_keypoints(
         self,
         img_1: np.ndarray,
-        pose,
-    ):
+        pose: Pose,
+    ) -> None:
         """
         Add new candidate keypoints to the current set of keypoints.
 
@@ -250,48 +250,3 @@ class VOPipeline:
                 observations=Keypoints2D(ckp_triangulated.array),
             )
             self.candidate_tracks.keep(~mask_new_landmarks)
-
-    def multiply_T(self, T_C_W_flat, num_new_candidate_keypoints):
-        """
-        From (1, 12):
-
-        [x, y, z, ..., v]
-
-        to (12, num_new_candidate_keypoints)
-
-        [
-            [x, x, x, ...],
-            [y, y, y, ...],
-            [z, z, z, ...],
-            ...
-            [v, v, v, ...]
-        ]
-
-        """
-        return np.tile(T_C_W_flat, (num_new_candidate_keypoints, 1)).T
-
-    # def initialize_state(self):
-    #     """
-    #     candidate_keypoints: CandidateKeypoints2D: Current candidate keypoints.
-    #     F1: np.ndarray(2, M): First track of current candidate keypoints.
-    #     T1: np.ndarray(12, M): Camera poses at first track of current candidate keypoints.
-    #     """
-    #     candidate_keypoints = CandidateKeypoints2D(np.zeros((2, 0), dtype=np.int32))
-    #     F1 = np.zeros((2, 0), dtype=np.int32)
-    #     T1 = np.zeros((12, 0), dtype=np.int32)
-
-    #     return candidate_keypoints, F1, T1
-
-    def get_T_C_W_flat(self, T_C_W):
-        """
-        From (3, 4):
-
-        r11 r12 r13 tx
-        r21 r22 r23 ty
-        r31 r32 r33 tz
-
-        to (1, 12):
-
-        r11 r12 r13 tx r21 r22 r23 ty r31 r32 r33 tz
-        """
-        return T_C_W.flatten()

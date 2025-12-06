@@ -48,13 +48,3 @@ class Keypoints2D(BaseKeypoints2D):
 
 class CandidateKeypoints2D(BaseKeypoints2D):
     pass
-
-
-# class Obervations2D(BaseKeypoints2D):
-#     """
-#     Observations of landmarks
-#     """
-
-#     @classmethod
-#     def from_keypoints(cls, keypoints: Keypoints2D) -> "Obervations2D":
-#         return Obervations2D(keypoints.array)
