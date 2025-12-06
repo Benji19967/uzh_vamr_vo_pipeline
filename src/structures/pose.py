@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 
 
@@ -14,3 +15,12 @@ class Pose:
     @property
     def T_C_W(self):
         return np.c_[self.R, self.t]
+
+    @property
+    def rvec(self):
+        rvec, _ = cv2.Rodrigues(self.R)  # type: ignore
+        return rvec
+
+    @property
+    def tvec(self):
+        return self.t

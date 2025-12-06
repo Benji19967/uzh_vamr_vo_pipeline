@@ -66,6 +66,8 @@ class VOPipeline:
 
         camera_positions, reprojection_errors = self.process_frames(images, K)
 
+        self.ba_exporter.write(self.landmark_tracks)
+
         self.visualizer.trajectory(camera_positions, camera_positions_ground_truth)
         self.visualizer.reprojection_errors(reprojection_errors)
         if self.visualizer._plot_scale_drift:
