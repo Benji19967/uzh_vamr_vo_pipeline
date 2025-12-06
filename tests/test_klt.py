@@ -1,5 +1,6 @@
 import numpy as np
 
+from src.structures.keypoints2D import Keypoints2D
 from src.tracking.klt import run_klt
 
 
@@ -24,8 +25,12 @@ def test_klt():
         ]
     )
 
-    p1_I_keypoints, status = run_klt(image_0, image_1, p0_I_keypoints)
+    keypoints_0 = Keypoints2D(p0_I_keypoints)
 
-    assert np.allclose(p1_I_keypoints[:, :2], p1_I_keypoints_expected[:, :2], atol=1e-1)
+    keypoints_1, status = run_klt(image_0, image_1, keypoints_0)
+
+    assert np.allclose(
+        keypoints_1.array[:, :2], p1_I_keypoints_expected[:, :2], atol=1e-1
+    )
     assert status.shape == (3,)
     assert np.allclose(status, np.array([True, True, False], dtype=bool))

@@ -3,6 +3,7 @@ import numpy as np
 
 from src.exceptions import FailedLocalizationError
 from src.localization.estimate_pose_dlt import estimate_pose_dlt
+from src.structures.pose import Pose
 from src.transformations.transformations import camera_to_pixel, world_to_camera
 
 NUM_ITERATIONS = 2000
@@ -43,7 +44,6 @@ def pnp_ransac_localization_cv2(
         raise FailedLocalizationError("RANSAC failed localize camera pose")
 
     R_C_W, _ = cv2.Rodrigues(rvec)  # type: ignore
-    T_C_W = np.c_[R_C_W, t_C_W]
     camera_position = -R_C_W @ t_C_W
 
     def inliers_to_mask(inliers: np.ndarray) -> np.ndarray:
@@ -52,7 +52,7 @@ def pnp_ransac_localization_cv2(
             mask[inliers.flatten()] = True
         return mask
 
-    return T_C_W, inliers_to_mask(inliers), camera_position.reshape(-1)
+    return Pose(R_C_W, t_C_W), inliers_to_mask(inliers), camera_position.reshape(-1)
 
 
 # TODO: yields a rather large reprojection error sometimes (>500 or >1000px)
