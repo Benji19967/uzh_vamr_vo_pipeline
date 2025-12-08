@@ -135,7 +135,6 @@ class VOPipeline:
             if i % KEYFRAME_INTERVAL == 0:
                 self.add_new_candidate_keypoints(img_1, pose)
                 self.add_new_landmarks(pose, K)
-                # self.ba_exporter.write(pose, landmarks, keypoints)
             if candidate_keypoints.count > MAX_NUM_CANDIDATE_KEYPOINTS:
                 self.candidate_tracks.keep_last(MAX_NUM_CANDIDATE_KEYPOINTS)
 
