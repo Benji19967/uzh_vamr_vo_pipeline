@@ -1,7 +1,13 @@
+import sys
+
 import numpy as np
 
 from src.features.features import Descriptors
-from src.features.features_cv2 import good_features_grid, good_features_to_track
+from src.features.features_cv2 import (
+    good_features_grid,
+    good_features_to_track,
+    orb_features,
+)
 from src.utils.image import Image
 
 
@@ -10,6 +16,7 @@ def find_keypoints(
     max_keypoints: int,
     exclude: list[np.ndarray] | None = None,
     use_grid: bool = True,
+    use_orb: bool = False,
 ):
     """
     Args:
@@ -21,7 +28,9 @@ def find_keypoints(
      - p_I_new_keypoints np.ndarray(2, N)
      - num_new_candidate_keypoints
     """
-    if use_grid:
+    if use_orb:
+        p_I_new_keypoints, _ = orb_features(img=img, max_features=max_keypoints)
+    elif use_grid:
         p_I_new_keypoints = good_features_grid(img=img, max_features=max_keypoints)
     else:
         p_I_new_keypoints = good_features_to_track(img=img, max_features=max_keypoints)
@@ -30,7 +39,7 @@ def find_keypoints(
     if exclude:
         for keypoints in exclude:
             p_I_new_keypoints = keep_unique(
-                p_I=p_I_new_keypoints,
+                p_I=p_I_new_keypoints.astype(np.int16),
                 p_I_existing=keypoints.astype(np.int16),
             )
 
@@ -43,6 +52,7 @@ def get_keypoint_correspondences(
     image_0: Image,
     image_1: Image,
     max_num_keypoints: int,
+    use_orb: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Args:
@@ -59,13 +69,18 @@ def get_keypoint_correspondences(
     keypoints = []
     descriptors = []
     for image in [image_0, image_1]:
-        p_I_corners = good_features_to_track(
-            img=image.img, max_features=max_num_keypoints
-        )
-        keypoints.append(p_I_corners)
+        if use_orb:
+            kp, des = orb_features(img=image.img, max_features=max_num_keypoints)
+            keypoints.append(kp)
+            descriptors.append(des)
+        else:
+            p_I_corners = good_features_to_track(
+                img=image.img, max_features=max_num_keypoints
+            )
+            keypoints.append(p_I_corners)
 
-        desc = Descriptors(image=image, keypoints=p_I_corners)
-        descriptors.append(desc.descriptors)
+            desc = Descriptors(image=image, keypoints=p_I_corners)
+            descriptors.append(desc.descriptors)
 
     matches = Descriptors.match(
         query_descriptors=descriptors[1], db_descriptors=descriptors[0]

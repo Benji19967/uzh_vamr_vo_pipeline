@@ -9,14 +9,14 @@ MIN_EUCLIDEAN_DISTANCE_BETWEEN_CORNERS = 20
 def good_features_grid(
     img: np.ndarray,
     max_features: int,
-    R_min: float = 0.01,
+    R_min: float = 0.05,
     min_distance: int = 5,
     grid_rows: int = 6,
     grid_cols: int = 8,
-    max_features_per_cell: int = 10,
+    max_features_per_cell: int = 2,
+    use_orb: bool = False,
 ):
-    """Shi-Tomasi Corner Detector -- find features in a grid
-    for a better distribution of keypoints.
+    """Find features in a grid for a better distribution of keypoints.
 
     Args:
      - img          np.ndarray: img to detect features from
@@ -25,7 +25,7 @@ def good_features_grid(
     Returns:
      - p_I_corners  np.ndarray(2,N): (x,y) coordinates of 2D corners/features detected
     """
-    max_features_per_cell = min(
+    max_features_per_cell = max(
         max_features_per_cell, max_features // (grid_rows * grid_cols)
     )
     h, w = img.shape[:2]
@@ -44,13 +44,16 @@ def good_features_grid(
 
             cell_img = img[y_start:y_end, x_start:x_end]
 
-            # Detect features in the cell
-            corners = cv.goodFeaturesToTrack(  # type: ignore
-                cell_img,
-                maxCorners=max_features_per_cell,
-                qualityLevel=R_min,
-                minDistance=min_distance,
-            )
+            if use_orb:
+                corners, _ = orb_features(cell_img, max_features_per_cell)
+            else:
+                # Detect features in the cell
+                corners = cv.goodFeaturesToTrack(  # type: ignore
+                    cell_img,
+                    maxCorners=max_features_per_cell,
+                    qualityLevel=R_min,
+                    minDistance=min_distance,
+                )
 
             if corners is not None:
                 # Adjust coordinates to the full image
@@ -89,3 +92,23 @@ def good_features_to_track(img: np.ndarray, max_features: int, R_min: float = 0.
     p_I_corners = from_cv2(corners)  # type: ignore
 
     return p_I_corners
+
+
+def orb_features(img: np.ndarray, max_features: int):
+    """
+    Returns:
+     - p_I_keypoints   np.ndarray(2,N): (x,y) coordinates of 2D corners/features detected
+     - descriptors     np.ndarray(32,N): descriptors
+    """
+    orb = cv.ORB_create(  # type: ignore
+        nfeatures=max_features,
+        scaleFactor=1.2,  # pyramid scale factor
+        nlevels=8,  # number of pyramid levels
+        edgeThreshold=15,
+    )
+    kp = orb.detect(img, None)
+    kp, des = orb.compute(img, kp)
+
+    pts = cv.KeyPoint_convert(kp)  # type: ignore
+
+    return pts.T, des.T
