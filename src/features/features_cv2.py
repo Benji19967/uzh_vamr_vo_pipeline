@@ -25,7 +25,7 @@ def good_features_grid(
     Returns:
      - p_I_corners  np.ndarray(2,N): (x,y) coordinates of 2D corners/features detected
     """
-    max_features_per_cell = min(
+    max_features_per_cell = max(
         max_features_per_cell, max_features // (grid_rows * grid_cols)
     )
     h, w = img.shape[:2]

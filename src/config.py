@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 
 class ParkingSettings:
-    initialization_second_image_id: int = 2
+    initialization_second_image_id: int = 4
     num_images: int = 599
     k: np.ndarray = np.array(
         [
