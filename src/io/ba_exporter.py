@@ -28,17 +28,22 @@ class BAExporter:
     https://grail.cs.washington.edu/projects/bal/
     """
 
-    def write(self, landmark_tracks: LandmarkTracks) -> None:
+    def write(
+        self, landmark_tracks: LandmarkTracks, f: float, k1: float = 0, k2: float = 0
+    ) -> None:
         poses = landmark_tracks._poses
         points = landmark_tracks._landmarks
         observations = landmark_tracks.get_observations()
 
-        with open(BA_DATA_FILENAME, "w") as f:
-            f.write(f"{len(poses)} {points.count} {len(observations)}\n")
+        with open(BA_DATA_FILENAME, "w") as file:
+            file.write(f"{len(poses)} {points.count} {len(observations)}\n")
             for o in observations:
-                f.write(f"{o[0]} {o[1]}     {o[2]} {o[3]}\n")
+                file.write(f"{o[0]} {o[1]}     {o[2]} {o[3]}\n")
             for _, pose in poses.items():
-                np.savetxt(f, pose.rvec)
-                np.savetxt(f, pose.tvec)
+                np.savetxt(file, pose.rvec)
+                np.savetxt(file, pose.tvec)
+                file.write(f"{f}\n")
+                file.write(f"{k1}\n")
+                file.write(f"{k2}\n")
             points_flat = points.array.reshape(-1)
-            np.savetxt(f, points_flat)
+            np.savetxt(file, points_flat)

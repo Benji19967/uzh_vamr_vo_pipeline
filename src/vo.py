@@ -66,7 +66,7 @@ class VOPipeline:
 
         camera_positions, reprojection_errors = self.process_frames(images, K)
 
-        self.ba_exporter.write(self.landmark_tracks)
+        self.ba_exporter.write(self.landmark_tracks, f=(K[0][0] + K[1][1]) / 2.0)
 
         self.visualizer.trajectory(camera_positions, camera_positions_ground_truth)
         self.visualizer.reprojection_errors(reprojection_errors)
