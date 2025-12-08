@@ -1,15 +1,19 @@
 import logging
-from pathlib import Path
 
-import cv2
 import numpy as np
 
 from src.exceptions import FailedLocalizationError
-from src.features import keypoints
+from src.features import keypoints as kp
+from src.io.ba_exporter import BAExporter
 from src.localization.pnp_ransac_localization import pnp_ransac_localization_cv2
 from src.mapping.reprojection_error import reprojection_error
 from src.mapping.triangulate_landmarks import triangulate_landmarks
 from src.plotting.visualizer import Visualizer
+from src.structures.candidate_tracks import CandidateTracks
+from src.structures.keypoints2D import CandidateKeypoints2D, Keypoints2D
+from src.structures.landmark_tracks import LandmarkTracks
+from src.structures.landmarks3D import Landmarks3D
+from src.structures.pose import Pose
 from src.tracking.klt import run_klt
 from src.utils import points
 from src.utils.masks import compose_masks
@@ -21,9 +25,6 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-HERE = Path(__file__).parent
-BA_DATA_FILENAME = HERE / ".." / "ba_data" / "ba_data.txt"
-
 MAX_NUM_CANDIDATE_KEYPOINTS = 1000
 MAX_NUM_NEW_CANDIDATE_KEYPOINTS = 1000
 MAX_REPROJECTION_ERROR = 5  # pixels
@@ -32,237 +33,221 @@ MIN_NUM_LANDMARKS_FOR_LOCALIZATION = 4
 KEYFRAME_INTERVAL = 5  # Process every ith image as a keyframe
 
 
-def run_vo(
-    images: list[np.ndarray],
-    p_I_keypoints_initial: np.ndarray,
-    p_W_landmarks_initial: np.ndarray,
-    K: np.ndarray,
-    plot_keypoints: bool,
-    plot_landmarks: bool,
-    plot_tracking: bool,
-    plot_reprojection_errors: bool,
-    plot_scale_drift: bool,
-    plot_trajectory: bool,
-    camera_positions_ground_truth: list[np.ndarray] | None = None,
-):
-    """
-    Run a visual odometry pipeline on the images
+class VOPipeline:
+    def __init__(self, visualizer: Visualizer, ba_exporter: BAExporter) -> None:
+        self.visualizer = visualizer
+        self.ba_exporter = ba_exporter
+        self.candidate_tracks = CandidateTracks()
+        self.landmark_tracks = LandmarkTracks()
 
-    Args:
-        - images list[np.ndarray]
-        - p_I_keypoints_initial np.ndarray(2,N)   | (x,y)
-        - p_W_landmarks_initial: np.ndarray(3, N) | (x,y,z)
-        - K np.ndarray(3, 3): camera matrix
-    """
-    with open(BA_DATA_FILENAME, "w") as f:
-        f.write(f"{len(images) // KEYFRAME_INTERVAL}\n")
+        # TODO
+        self.frame_id = 1
 
-    visualizer = Visualizer(
-        plot_keypoints,
-        plot_landmarks,
-        plot_tracking,
-        plot_reprojection_errors,
-        plot_scale_drift,
-        plot_trajectory,
-    )
-    P1, X1, C1, F1, T1 = initialize_state(p_I_keypoints_initial, p_W_landmarks_initial)
+    def run(
+        self,
+        images: list[np.ndarray],
+        keypoints_initial: Keypoints2D,
+        landmarks_initial: Landmarks3D,
+        K: np.ndarray,
+        camera_positions_ground_truth: list[np.ndarray] | None = None,
+    ):
+        """
+        Run a visual odometry pipeline on the images
 
-    camera_positions = []
-    reprojection_errors = []
-    for i, (img_0, img_1) in enumerate(zip(images, images[1:])):
-        logger.debug(f"Iteration: {i}")
-
-        # Track keypoints from img_0 to img_1
-        P1, status_mask = run_klt(img_0, img_1, P1)
-        P1, X1 = points.apply_mask_many([P1, X1], status_mask)
-
-        # Track candidate keypoints from img_0 to img_1
-        C0 = C1
-        C1, status_mask_candiate_kps = run_klt(img_0, img_1, C1)
-        C0, C1, F1, T1 = points.apply_mask_many(
-            [C0, C1, F1, T1], status_mask_candiate_kps
+        Args:
+            - images list[np.ndarray]
+            - keypoints_initial Keypoints2D
+            - landmarks_initial: Landmarks3D
+            - K np.ndarray(3, 3): camera matrix
+        """
+        self.landmark_tracks.add_landmarks(
+            frame_id=0, landmarks=landmarks_initial, observations=keypoints_initial
         )
-        visualizer.tracking(C0, C1, img_0)
-        logger.debug(f"After klt: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
 
-        # Localize: compute camera pose
-        if P1.shape[1] < MIN_NUM_LANDMARKS_FOR_LOCALIZATION:
-            raise ValueError(f"Not enough keypoints/landmarks for localization")
-        try:
-            T_C_W, best_inlier_mask, camera_position = pnp_ransac_localization_cv2(
-                P1, X1, K
+        camera_positions, reprojection_errors = self.process_frames(images, K)
+
+        self.ba_exporter.write(self.landmark_tracks)
+
+        self.visualizer.trajectory(camera_positions, camera_positions_ground_truth)
+        self.visualizer.reprojection_errors(reprojection_errors)
+        if self.visualizer._plot_scale_drift:
+            assert camera_positions_ground_truth
+            self.visualizer.scale_drift(camera_positions, camera_positions_ground_truth)
+
+    def process_frames(self, images, K):
+        camera_positions = []
+        reprojection_errors = []
+        for i, (img_0, img_1) in enumerate(zip(images, images[1:])):
+            logger.debug(f"Iteration: {i}, Frame id: {self.frame_id}")
+
+            # Track keypoints of landmarks from img_0 to img_1
+            tracked_landmarks_keypoints, tracked_landmarks_mask = run_klt(
+                img_0, img_1, self.landmark_tracks.get_active_keypoints()
             )
-        except FailedLocalizationError:
-            logger.debug(f"Failed Ransac localization")
-            continue
-        P1, X1 = points.apply_mask_many([P1, X1], best_inlier_mask)
-        camera_positions.append(camera_position)
-        logger.debug(f"After ran: P1: {P1.shape}, X1: {X1.shape}, C1: {C1.shape}")
-        logger.debug(f"Pose:\n {T_C_W}")
-        logger.debug(f"Camera position: {camera_position.flatten()}")
+            self.landmark_tracks.add_frame_observations(
+                frame_id=self.frame_id,
+                observations=tracked_landmarks_keypoints,
+                tracked_mask=tracked_landmarks_mask,
+            )
 
-        # Map: add new landmarks
-        if i % KEYFRAME_INTERVAL == 0:
-            C1, F1, T1 = add_new_candidate_keypoints(img_1, P1, C1, F1, T1, T_C_W)
-            P1, X1, C1, F1, T1 = add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K)
-            R = T_C_W[:3, :3]
-            rvec, _ = cv2.Rodrigues(R)
-            tvec = T_C_W[:3, 3]
-            with open(BA_DATA_FILENAME, "a+") as f:
-                f.write(f"{X1.shape[1]}\n")
-                np.savetxt(f, rvec)
-                np.savetxt(f, tvec.T)
-                np.savetxt(f, P1.T)
-                np.savetxt(f, X1.T)
-        if C1.shape[1] > MAX_NUM_CANDIDATE_KEYPOINTS:
-            C1 = C1[:, -MAX_NUM_CANDIDATE_KEYPOINTS:]
-            F1 = F1[:, -MAX_NUM_CANDIDATE_KEYPOINTS:]
-            T1 = T1[:, -MAX_NUM_CANDIDATE_KEYPOINTS:]
+            # Track candidate keypoints from img_0 to img_1
+            candidate_keypoints = self.candidate_tracks.get_current_coords()
+            candidate_keypoints_0 = candidate_keypoints
+            candidate_keypoints, tracked_candidates_mask = run_klt(
+                img_0, img_1, candidate_keypoints
+            )
+            candidate_keypoints_0.keep(tracked_candidates_mask)
+            self.visualizer.tracking(
+                candidate_keypoints_0.array, candidate_keypoints.array, img_0
+            )
+            self.candidate_tracks.update_tracks(
+                candidate_keypoints, tracked_candidates_mask
+            )
+            logger.debug(
+                f"After klt: landmarks: {self.landmark_tracks.num_landmarks}, candidate_keypoints: {candidate_keypoints.shape}"
+            )
 
-        # Evaluate results
-        reproj_error = reprojection_error(points.to_hom(X1), P1, T_C_W, K)
-        reprojection_errors.append(reproj_error)
-        logger.debug(f"Reprojection error landmarks: {reproj_error}")
+            # Localize: compute camera pose
+            if (
+                self.landmark_tracks.get_active_landmarks().count
+                < MIN_NUM_LANDMARKS_FOR_LOCALIZATION
+            ):
+                raise ValueError("Not enough keypoints/landmarks for localization")
+            try:
+                pose, best_inlier_mask, camera_position = pnp_ransac_localization_cv2(
+                    self.landmark_tracks.get_active_keypoints().array,
+                    self.landmark_tracks.get_active_landmarks().array,
+                    K,
+                )
+                self.landmark_tracks.keep(best_inlier_mask)
+                self.landmark_tracks.add_frame_pose(frame_id=self.frame_id, pose=pose)
+                camera_positions.append(camera_position)
+                logger.debug(
+                    f"After ransac: landmarks: {self.landmark_tracks.num_landmarks}, candidate_keypoints: {candidate_keypoints.shape}"
+                )
+                logger.debug(f"Pose:\n {pose.T_C_W}")
+                logger.debug(f"Camera position: {camera_position.flatten()}")
+            except FailedLocalizationError:
+                logger.debug("Failed Ransac localization")
+                continue
 
-        visualizer.keypoints_and_landmarks(P1, X1, C1, camera_positions, img_1)
-    visualizer.trajectory(camera_positions, camera_positions_ground_truth)
-    visualizer.reprojection_errors(reprojection_errors)
-    if plot_scale_drift:
-        assert camera_positions_ground_truth
-        visualizer.scale_drift(camera_positions, camera_positions_ground_truth)
+            # Map: add new landmarks
+            if i % KEYFRAME_INTERVAL == 0:
+                self.add_new_candidate_keypoints(img_1, pose)
+                self.add_new_landmarks(pose, K)
+            if candidate_keypoints.count > MAX_NUM_CANDIDATE_KEYPOINTS:
+                self.candidate_tracks.keep_last(MAX_NUM_CANDIDATE_KEYPOINTS)
 
+            # Evaluate results
+            reproj_error = reprojection_error(
+                self.landmark_tracks.get_active_landmarks().array_hom,
+                self.landmark_tracks.get_active_keypoints().array,
+                pose.T_C_W,
+                K,
+            )
+            reprojection_errors.append(reproj_error)
+            logger.debug(f"Reprojection error landmarks: {reproj_error}")
 
-def add_new_candidate_keypoints(img_1: np.ndarray, P1, C1, F1, T1, T_C_W):
-    """
-    Add new candidate keypoints to the current set of keypoints.
+            self.visualizer.keypoints_and_landmarks(
+                self.landmark_tracks.get_active_keypoints().array,
+                self.landmark_tracks.get_active_landmarks().array,
+                candidate_keypoints.array,
+                camera_positions,
+                img_1,
+            )
+            self.frame_id += 1
 
-    Args:
-        img_1: np.ndarray: Current image.
-        P1: np.ndarray(2, N): Current keypoints.
-        C1: np.ndarray(2, M): Current candidate keypoints.
-        F1: np.ndarray(2, M): First track of current candidate keypoints.
-        T1: np.ndarray(12, M): Camera poses at first track of current candidate keypoints.
-        T_C_W: np.ndarray(3, 4): Camera pose for the current image.
-    """
-    C1_new, num_new_candidate_keypoints = keypoints.find_keypoints(
-        img_1, MAX_NUM_NEW_CANDIDATE_KEYPOINTS, exclude=[C1, P1]
-    )
-    C1 = np.c_[C1, C1_new]
-    F1 = np.c_[F1, C1_new]
-    T1 = np.c_[T1, multiply_T(get_T_C_W_flat(T_C_W), num_new_candidate_keypoints)]
-    return C1, F1, T1
+        return camera_positions, reprojection_errors
 
+    def add_new_candidate_keypoints(
+        self,
+        img_1: np.ndarray,
+        pose: Pose,
+    ) -> None:
+        """
+        Add new candidate keypoints to the current set of keypoints.
 
-def add_new_landmarks(P1, X1, C1, F1, T1, T_C_W, K):
-    """
-    Add new landmarks to the current set of landmarks.
-    Remove the corresponding candidate keypoints from the current set.
-
-    Requirements to find a new landmark:
-
-    1. Bearing angle > threshold
-    2. Reprojection error < threshold
-    3. Is not an outlier when using RANSAC
-
-    Args:
-        P1: np.ndarray(2, N): Current keypoints.
-        X1: np.ndarray(3, N): Current landmarks.
-        C1: np.ndarray(2, M): Current candidate keypoints.
-        F1: np.ndarray(2, M): First track of current candidate keypoints.
-        T1: np.ndarray(12, M): Camera poses at first track of current candidate keypoints.
-        T_C_W: np.ndarray(3, 4): Camera pose for the current image.
-        K: np.ndarray(3, 3): Camera intrinsic matrix.
-    Returns:
-        P1: np.ndarray(2, N): Updated keypoints.
-        X1: np.ndarray(3, N): Updated landmarks.
-        C1: np.ndarray(2, M): Updated candidate keypoints.
-    """
-    assert F1.any()
-    _, _, mask_to_triangulate = compute_bearing_angles_with_translation(
-        F1, C1, T1, T_C_W, K, MIN_ANGLE_TO_TRIANGULATE
-    )
-
-    p_W_new_landmarks, mask_successful_triangulation = triangulate_landmarks(
-        F1, C1, T1, T_C_W, K, mask_to_triangulate, MAX_REPROJECTION_ERROR
-    )
-    C1_triangulated = points.apply_mask(C1, mask_successful_triangulation)
-    logger.debug(f"Successful triangulation: {mask_successful_triangulation.sum()}")
-
-    best_inlier_mask_ransac = np.full(mask_successful_triangulation.sum(), False)
-    if C1.any() and mask_successful_triangulation.sum() >= 4:
-        _, best_inlier_mask_ransac, _ = pnp_ransac_localization_cv2(
-            C1_triangulated, p_W_new_landmarks, K
+        Args:
+            img_1: np.ndarray: Current image.
+            pose: Pose: Camera pose for the current image.
+        """
+        cp_new, _ = kp.find_keypoints(
+            img_1,
+            MAX_NUM_NEW_CANDIDATE_KEYPOINTS,
+            exclude=[
+                self.candidate_tracks.get_current_coords().array,
+                self.landmark_tracks.get_active_keypoints().array,
+            ],
         )
-        logger.debug(f"Num ransac inliers: {best_inlier_mask_ransac.sum()}")
-
-        C1_triangulated_inliers, p_W_new_landmarks_inliers = points.apply_mask_many(
-            [C1_triangulated, p_W_new_landmarks],
-            best_inlier_mask_ransac,
+        self.candidate_tracks.add_candidate_keypoints(
+            CandidateKeypoints2D(cp_new), pose
         )
 
-        mask_new_landmarks = compose_masks(
-            mask_successful_triangulation, best_inlier_mask_ransac
+    def add_new_landmarks(
+        self,
+        pose: Pose,
+        K,
+    ):
+        """
+        Add new landmarks to the current set of landmarks.
+        Remove the corresponding candidate keypoints from the current set.
+
+        Requirements to find a new landmark:
+
+        1. Bearing angle > threshold
+        2. Reprojection error < threshold
+        3. Is not an outlier when using RANSAC
+
+        Args:
+            pose: Pose: Camera pose for the current image.
+            K: np.ndarray(3, 3): Camera intrinsic matrix.
+        """
+        assert self.candidate_tracks.get_current_coords().count > 0
+        _, _, mask_to_triangulate = compute_bearing_angles_with_translation(
+            self.candidate_tracks.get_initial_coords().array,
+            self.candidate_tracks.get_current_coords().array,
+            self.candidate_tracks.get_TCWs_at_intial_coords(),
+            pose.T_C_W,
+            K,
+            MIN_ANGLE_TO_TRIANGULATE,
         )
 
-        P1 = np.c_[P1, C1_triangulated_inliers]
-        X1 = np.c_[X1, p_W_new_landmarks_inliers]
-        C1, F1, T1 = points.apply_mask_many([C1, F1, T1], ~mask_new_landmarks)
+        p_W_new_landmarks, mask_successful_triangulation = triangulate_landmarks(
+            self.candidate_tracks.get_initial_coords().array,
+            self.candidate_tracks.get_current_coords().array,
+            self.candidate_tracks.get_TCWs_at_intial_coords(),
+            pose.T_C_W,
+            K,
+            mask_to_triangulate,
+            MAX_REPROJECTION_ERROR,
+        )
+        ckp_triangulated = self.candidate_tracks.get_current_coords().filtered(
+            mask_successful_triangulation
+        )
+        logger.debug(f"Successful triangulation: {mask_successful_triangulation.sum()}")
 
-    return P1, X1, C1, F1, T1
+        best_inlier_mask_ransac = np.full(mask_successful_triangulation.sum(), False)
+        if (
+            self.candidate_tracks.get_current_coords().count > 0
+            and mask_successful_triangulation.sum() >= 4
+        ):
+            _, best_inlier_mask_ransac, _ = pnp_ransac_localization_cv2(
+                ckp_triangulated.array, p_W_new_landmarks, K
+            )
+            logger.debug(f"Num ransac inliers: {best_inlier_mask_ransac.sum()}")
 
+            ckp_triangulated.keep(best_inlier_mask_ransac)
+            p_W_new_landmarks_inliers = points.apply_mask(
+                p_W_new_landmarks, best_inlier_mask_ransac
+            )
 
-def multiply_T(T_C_W_flat, num_new_candidate_keypoints):
-    """
-    From (1, 12):
+            mask_new_landmarks = compose_masks(
+                mask_successful_triangulation, best_inlier_mask_ransac
+            )
 
-    [x, y, z, ..., v]
-
-    to (12, num_new_candidate_keypoints)
-
-    [
-        [x, x, x, ...],
-        [y, y, y, ...],
-        [z, z, z, ...],
-        ...
-        [v, v, v, ...]
-    ]
-
-    """
-    return np.tile(T_C_W_flat, (num_new_candidate_keypoints, 1)).T
-
-
-def initialize_state(
-    p_I_keypoints_initial: np.ndarray,
-    p_W_landmarks_initial: np.ndarray,
-):
-    """
-    S1 = (P1,X1,C1,F1,T1)
-
-    P1: np.ndarray(2, N): Current keypoints.
-    X1: np.ndarray(3, N): Current landmarks.
-    C1: np.ndarray(2, M): Current candidate keypoints.
-    F1: np.ndarray(2, M): First track of current candidate keypoints.
-    T1: np.ndarray(12, M): Camera poses at first track of current candidate keypoints.
-    """
-    P1 = p_I_keypoints_initial
-    X1 = p_W_landmarks_initial
-    C1 = np.zeros((2, 0), dtype=np.int32)
-    F1 = np.zeros((2, 0), dtype=np.int32)
-    T1 = np.zeros((12, 0), dtype=np.int32)
-
-    return P1, X1, C1, F1, T1
-
-
-def get_T_C_W_flat(T_C_W):
-    """
-    From (3, 4):
-
-    r11 r12 r13 tx
-    r21 r22 r23 ty
-    r31 r32 r33 tz
-
-    to (1, 12):
-
-    r11 r12 r13 tx r21 r22 r23 ty r31 r32 r33 tz
-    """
-    return T_C_W.flatten()
+            self.landmark_tracks.add_landmarks(
+                frame_id=self.frame_id,
+                landmarks=Landmarks3D(p_W_new_landmarks_inliers),
+                observations=Keypoints2D(ckp_triangulated.array),
+            )
+            self.candidate_tracks.keep(~mask_new_landmarks)
