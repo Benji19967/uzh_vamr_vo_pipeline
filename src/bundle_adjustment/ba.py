@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from scipy.optimize import least_squares
+
 HERE = Path(__file__).parent
 BA_DATA_FILENAME = HERE / ".." / "ba_data" / "ba_data.txt"
 
@@ -42,7 +44,7 @@ def fun(x):
 
 
     Args:
-        - x np.ndarray(num_cameras * num_3d_points,)
+        - x np.ndarray((6*num_cameras) * (3*num_3d_points),)
 
     Returns:
         - residuals np.ndarray(m,)
@@ -50,12 +52,18 @@ def fun(x):
     pass
 
 
-def read_data():
-    with open(BA_DATA_FILENAME, "r") as f:
-        num_keyframes = int(f.readline())
-        for _ in range(num_keyframes):
-            num_points = int(f.readline())
-            pass
+class BundleAdjuster:
+    def refine_pose_and_landmarks(self, poses, landmarks):
+        res = least_squares(fun, x0, method="trf")
+        return res.x
+
+
+# def read_data():
+#     with open(BA_DATA_FILENAME, "r") as f:
+#         num_keyframes = int(f.readline())
+#         for _ in range(num_keyframes):
+#             num_points = int(f.readline())
+#             pass
 
 
 def main():
