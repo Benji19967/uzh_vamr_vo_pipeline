@@ -55,6 +55,9 @@ p_W_hom = np.ndarray(
 1. Use images 0 and 4 (rather than 0 and 2) for initialization. This reduced the overall scale drift significantly because the initialization of the 3D point cloud is more accurate. 
 2. Use 4 degrees instead of 5 degrees as the min angle to triangulate. 
 
+### Version 2
+
+1. Apply PNP pose refinement on RANSAC inliers
 
 ## Demo (takes a few seconds to load)
 
@@ -65,10 +68,10 @@ p_W_hom = np.ndarray(
 
 ## Evaluation
 
-- Evaluation of version "1": there is less scale drift. 
+- Evaluation of version "2": there is less scale drift. 
 
-![Camera Trajectory](assets/01/camera_trajectory.png)
+![Camera Trajectory](assets/02/camera_trajectory.png)
 
-![Reprojection Error](assets/01/reprojection_error.png)
+![Reprojection Error](assets/02/reprojection_error.png)
 
-![Scale Drift](assets/01/scale_drift.png)
+![Scale Drift](assets/02/scale_drift.png)
