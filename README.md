@@ -42,24 +42,33 @@ p_W_hom = np.ndarray(
 
 ## Notable progress
 
+### Version 0
+
 1. Adding keypoints using grids. Avoids clustering of keypoints and distributes them over the entire image.
 2. Limit number of candidate keypoints. 
     - Eliminates old candidate keypoints (__after__ new ones were added) which may be out of frame and leads to less drift.
     - More efficient computationally
     - Interesting point: returning the new candidate keypoints in random order (shuffling) seems to increase drift.
+    
+### Version 1
+
+1. Use images 0 and 4 (rather than 0 and 2) for initialization. This reduced the overall scale drift significantly because the initialization of the 3D point cloud is more accurate. 
+2. Use 4 degrees instead of 5 degrees as the min angle to triangulate. 
 
 
 ## Demo (takes a few seconds to load)
 
-- There is __scale drift__ because this is a monocular setup: final camera position is (374.50, -1.51, 43.06) but expected is (89.70, 0, 0)
-  - To try: implement bundle adjustment
+- There is __scale drift__ because this is a monocular setup. 
+- Demo of version "0"
 
-![Parking VO](assets/parking_00.gif)
+![Parking VO](assets/00/parking_00.gif)
 
 ## Evaluation
 
-![Camera Trajectory](assets/camera_trajectory.png)
+- Evaluation of version "1": there is less scale drift. 
 
-![Reprojection Error](assets/reprojection_error.png)
+![Camera Trajectory](assets/01/camera_trajectory.png)
 
-![Scale Drift](assets/scale_drift.png)
+![Reprojection Error](assets/01/reprojection_error.png)
+
+![Scale Drift](assets/01/scale_drift.png)
