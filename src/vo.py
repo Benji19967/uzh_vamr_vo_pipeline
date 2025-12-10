@@ -46,6 +46,7 @@ class VOPipeline:
         images: list[np.ndarray],
         keypoints_initial: Keypoints2D,
         landmarks_initial: Landmarks3D,
+        keypoints_img_idx: int,
         K: np.ndarray,
         camera_positions_ground_truth: list[np.ndarray] | None = None,
     ):
@@ -64,7 +65,9 @@ class VOPipeline:
             frame_id=0, landmarks=landmarks_initial, observations=keypoints_initial
         )
 
-        camera_positions, reprojection_errors = self.process_frames(images, K)
+        camera_positions, reprojection_errors = self.process_frames(
+            images, keypoints_img_idx, K
+        )
 
         logger.info("Finished running VO pipeline")
 
@@ -76,10 +79,12 @@ class VOPipeline:
             assert camera_positions_ground_truth
             self.visualizer.scale_drift(camera_positions, camera_positions_ground_truth)
 
-    def process_frames(self, images, K):
+    def process_frames(self, images, keypoints_img_idx: int, K: np.ndarray):
         camera_positions = []
         reprojection_errors = []
-        for i, (img_0, img_1) in enumerate(zip(images, images[1:])):
+        for i, (img_0, img_1) in enumerate(
+            zip(images[keypoints_img_idx:], images[keypoints_img_idx + 1 :])
+        ):
             logger.debug(f"Iteration: {i}, Frame id: {self.frame_id}")
 
             # Track keypoints of landmarks from img_0 to img_1
