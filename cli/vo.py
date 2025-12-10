@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated, List, Optional
 
 import typer
@@ -11,6 +12,11 @@ from src.utils.data_reader import KittiDataReader, MalagaDataReader, ParkingData
 from src.vo import VOPipeline
 
 
+def configure_logging(log_level):
+    """Global logging config for all commands."""
+    logging.basicConfig(level=getattr(logging, log_level.upper()))
+
+
 def run(
     dataset: Annotated[Dataset, typer.Option()],
     plot: Annotated[List[Plot], typer.Option()] = [
@@ -21,7 +27,16 @@ def run(
         Plot.TRAJECTORY,
     ],
     num_images: Annotated[Optional[int], typer.Option()] = None,
+    log_level: str = typer.Option(
+        "INFO",
+        "--log-level",
+        "-l",
+        help="Set log level: DEBUG, INFO, WARNING, ERROR, CRITICAL",
+        case_sensitive=False,
+    ),
 ) -> None:
+    configure_logging(log_level)
+
     match dataset:
         case Dataset.PARKING:
             DataReader = ParkingDataReader

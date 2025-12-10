@@ -21,9 +21,7 @@ from src.utils.points import compute_bearing_angles_with_translation
 
 np.set_printoptions(suppress=True)
 
-logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 MAX_NUM_CANDIDATE_KEYPOINTS = 1000
 MAX_NUM_NEW_CANDIDATE_KEYPOINTS = 1000
@@ -60,11 +58,15 @@ class VOPipeline:
             - landmarks_initial: Landmarks3D
             - K np.ndarray(3, 3): camera matrix
         """
+        logger.info("Starting VO pipeline")
+
         self.landmark_tracks.add_landmarks(
             frame_id=0, landmarks=landmarks_initial, observations=keypoints_initial
         )
 
         camera_positions, reprojection_errors = self.process_frames(images, K)
+
+        logger.info("Finished running VO pipeline")
 
         self.ba_exporter.write(self.landmark_tracks, f=(K[0][0] + K[1][1]) / 2.0)
 
@@ -137,6 +139,10 @@ class VOPipeline:
                 self.add_new_landmarks(pose, K)
             if candidate_keypoints.count > MAX_NUM_CANDIDATE_KEYPOINTS:
                 self.candidate_tracks.keep_last(MAX_NUM_CANDIDATE_KEYPOINTS)
+
+            logger.info(
+                f"Num landmarks at frame {self.frame_id}: {self.landmark_tracks.num_landmarks}"
+            )
 
             # Evaluate results
             reproj_error = reprojection_error(

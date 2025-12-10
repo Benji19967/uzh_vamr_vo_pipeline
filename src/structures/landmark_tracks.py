@@ -44,7 +44,7 @@ class LandmarkTracks:
 
     @property
     def num_landmarks(self) -> int:
-        return self._landmarks.count
+        return self.get_active_landmarks().count
 
     def keep(self, mask: np.ndarray) -> None:
         self._active_mask = compose_masks(self._active_mask, mask)

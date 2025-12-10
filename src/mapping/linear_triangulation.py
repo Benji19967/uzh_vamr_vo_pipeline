@@ -32,6 +32,6 @@ def linear_triangulation(
         _, _, vh = np.linalg.svd(A)
         p_W_hom[:, i] = vh.T[:, -1]
 
-        p_W_hom /= p_W_hom[3, :]
+        p_W_hom[:, i] /= p_W_hom[3, i]
 
     return p_W_hom
