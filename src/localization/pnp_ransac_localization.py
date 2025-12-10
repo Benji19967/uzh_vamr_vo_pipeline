@@ -39,7 +39,7 @@ def pnp_ransac_localization_cv2(
         cameraMatrix=K,
         distCoeffs=dist_coeffs,
         iterationsCount=200,
-        reprojectionError=8.0,
+        reprojectionError=6.0,
         confidence=0.99,
         flags=cv2.SOLVEPNP_ITERATIVE,  # type: ignore
     )
