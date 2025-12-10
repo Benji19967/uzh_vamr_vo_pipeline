@@ -31,17 +31,35 @@ def pnp_ransac_localization_cv2(
     """
     N = p_I_keypoints.shape[1]
     dist_coeffs = np.zeros((4, 1))
+    p_W_landmarks_cv2 = p_W_landmarks.T.reshape(-1, 1, 3)
+    p_I_keypoints_cv2 = p_I_keypoints.T.reshape(-1, 1, 2)
     success, rvec, t_C_W, inliers = cv2.solvePnPRansac(  # type: ignore
-        objectPoints=p_W_landmarks.T.reshape(-1, 1, 3),
-        imagePoints=p_I_keypoints.T.reshape(-1, 1, 2),
+        objectPoints=p_W_landmarks_cv2,
+        imagePoints=p_I_keypoints_cv2,
         cameraMatrix=K,
         distCoeffs=dist_coeffs,
+        iterationsCount=200,
         reprojectionError=8.0,
         confidence=0.99,
         flags=cv2.SOLVEPNP_ITERATIVE,  # type: ignore
     )
     if not success:
         raise FailedLocalizationError("RANSAC failed localize camera pose")
+
+    # --- Refinement on inliers ---
+    inl3d = p_W_landmarks_cv2[inliers[:, 0]]
+    inl2d = p_I_keypoints_cv2[inliers[:, 0]]
+
+    ok, rvec, t_C_W = cv2.solvePnP(  # type: ignore
+        inl3d,
+        inl2d,
+        K,
+        None,
+        rvec,
+        t_C_W,
+        useExtrinsicGuess=True,
+        flags=cv2.SOLVEPNP_ITERATIVE,  # type: ignore
+    )
 
     R_C_W, _ = cv2.Rodrigues(rvec)  # type: ignore
     camera_position = -R_C_W @ t_C_W
