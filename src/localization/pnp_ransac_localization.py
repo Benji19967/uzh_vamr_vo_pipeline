@@ -44,6 +44,8 @@ def pnp_ransac_localization_cv2(
         raise FailedLocalizationError("RANSAC failed localize camera pose")
 
     R_C_W, _ = cv2.Rodrigues(rvec)  # type: ignore
+
+    # TODO: should this be -R_C_W.T @ t_C_W
     camera_position = -R_C_W @ t_C_W
 
     def inliers_to_mask(inliers: np.ndarray) -> np.ndarray:

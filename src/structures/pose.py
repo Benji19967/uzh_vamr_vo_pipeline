@@ -3,7 +3,6 @@ import numpy as np
 
 
 class Pose:
-
     def __init__(self, R, t) -> None:
         self.R: np.ndarray = R  # (3,3) rotation matrix
         self.t: np.ndarray = t  # (3,) translation vector
@@ -19,8 +18,13 @@ class Pose:
     @property
     def rvec(self):
         rvec, _ = cv2.Rodrigues(self.R)  # type: ignore
-        return rvec
+        return rvec.reshape(3, 1)
 
     @property
     def tvec(self):
-        return self.t
+        return self.t.reshape(3, 1)
+
+    @classmethod
+    def from_rvec_tvec(cls, rvec: np.ndarray, tvec: np.ndarray) -> "Pose":
+        R, _ = cv2.Rodrigues(rvec)  # type: ignore
+        return Pose(R, tvec)

@@ -54,9 +54,21 @@ class LandmarkTracks:
     def get_active_landmarks(self) -> Landmarks3D:
         return self._landmarks.filtered(self._active_mask)
 
+    def set_landmarks_by_ids(self, landmarks: Landmarks3D, ids: list[int]) -> None:
+        assert landmarks.count == len(ids)
+        self._landmarks.array[:, ids] = landmarks.array
+
     def get_active_keypoints(self) -> Keypoints2D:
         last_frame = next(reversed(self._observations))
         return self._observations[last_frame]
+
+    def get_poses_by_ids(self, ids: list[int]) -> list[Pose]:
+        return [self._poses[id] for id in ids]
+
+    def set_poses_by_ids(self, poses: list[Pose], ids: list[int]) -> None:
+        assert len(poses) == len(ids)
+        for pose, id in zip(poses, ids):
+            self._poses[id] = pose
 
     def get_observations(self) -> list[tuple[int, int, int, int]]:
         obs = []
