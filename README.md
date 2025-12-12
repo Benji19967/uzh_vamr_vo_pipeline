@@ -59,6 +59,10 @@ p_W_hom = np.ndarray(
 
 1. Apply PNP pose refinement on RANSAC inliers
 
+### Version 3
+
+1. Use 6.0 pixels as a filter in PNP RANSAC rather than 8.0 
+
 ## Demo (takes a few seconds to load)
 
 - There is __scale drift__ because this is a monocular setup. 
@@ -68,10 +72,10 @@ p_W_hom = np.ndarray(
 
 ## Evaluation
 
-- Evaluation of version "2": there is less scale drift. 
+- Evaluation of version "3": there is less scale drift. 
 
-![Camera Trajectory](assets/02/camera_trajectory.png)
+![Camera Trajectory](assets/03/camera_trajectory.png)
 
-![Reprojection Error](assets/02/reprojection_error.png)
+![Reprojection Error](assets/03/reprojection_error.png)
 
-![Scale Drift](assets/02/scale_drift.png)
+![Scale Drift](assets/03/scale_drift.png)
