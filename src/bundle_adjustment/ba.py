@@ -66,6 +66,9 @@ def fun(
 
 
 class BundleAdjuster:
+    # TODO: Is it a good idea to pass LandmarkTracks?
+    # TODO: Or would it be better to use lower level objects/data?
+
     def __init__(self, landmark_tracks: LandmarkTracks, K: np.ndarray) -> None:
         self._landmark_tracks = landmark_tracks
         self._K = K
@@ -89,15 +92,11 @@ class BundleAdjuster:
             visible_landmark_indexes,
         ) = self._landmark_tracks.get_visible_landmarks(frame_ids)
 
-        cam_id_to_local = {cid: i for i, cid in enumerate(frame_ids)}
-        landmark_id_to_local = {
-            pid: i for i, pid in enumerate(visible_landmark_indexes.tolist())
-        }
+        cam_id_to_local, landmark_id_to_local = self._global_to_local_ids(
+            frame_ids, visible_landmark_indexes
+        )
 
-        x0 = np.array(
-            [[pose.rvec.flatten(), pose.tvec.flatten()] for pose in poses_to_optimize]
-        ).flatten()
-        x0 = np.concatenate([x0, landmarks_to_optimize.array.reshape(-1)])
+        x0 = self._build_x0(landmarks_to_optimize, poses_to_optimize)
 
         res = least_squares(
             fun,
@@ -115,21 +114,38 @@ class BundleAdjuster:
         )
         optimized_x = res.x
 
-        # Unpack poses
-        poses_np = optimized_x[: 6 * len(frame_ids)]
-        poses = []
-        for i in range(len(frame_ids)):
-            block = poses_np[i * 6 : (i + 1) * 6]
-            rvec = block[:3]
-            tvec = block[3:]
-            pose = Pose.from_rvec_tvec(rvec, tvec)
-            poses.append(pose)
+        poses = self._unpack_poses(frame_ids, optimized_x)
 
         # Unpack landmarks
         landmarks_np = optimized_x[6 * len(frame_ids) :]
         landmarks = Landmarks3D(landmarks_np.reshape(3, -1))
 
         return landmarks, poses
+
+    def _global_to_local_ids(self, frame_ids: list[int], visible_landmark_indexes):
+        cam_id_to_local = {cid: i for i, cid in enumerate(frame_ids)}
+        landmark_id_to_local = {
+            pid: i for i, pid in enumerate(visible_landmark_indexes.tolist())
+        }
+        return cam_id_to_local, landmark_id_to_local
+
+    def _build_x0(self, landmarks_to_optimize, poses_to_optimize) -> None:
+        x0 = np.array(
+            [[pose.rvec.flatten(), pose.tvec.flatten()] for pose in poses_to_optimize]
+        ).flatten()
+        x0 = np.concatenate([x0, landmarks_to_optimize.array.reshape(-1)])
+        return x0
+
+    def _unpack_poses(self, frame_ids: list[int], optimized_x):
+        poses = []
+        poses_np = optimized_x[: 6 * len(frame_ids)]
+        for i in range(len(frame_ids)):
+            block = poses_np[i * 6 : (i + 1) * 6]
+            rvec = block[:3]
+            tvec = block[3:]
+            pose = Pose.from_rvec_tvec(rvec, tvec)
+            poses.append(pose)
+        return poses
 
 
 def main():
