@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 
+from src.bundle_adjustment.ba import BundleAdjuster
 from src.exceptions import FailedLocalizationError
 from src.features import keypoints as kp
 from src.io.ba_exporter import BAExporter
@@ -32,21 +33,25 @@ KEYFRAME_INTERVAL = 5  # Process every ith image as a keyframe
 
 
 class VOPipeline:
-    def __init__(self, visualizer: Visualizer, ba_exporter: BAExporter) -> None:
+    def __init__(
+        self, visualizer: Visualizer, ba_exporter: BAExporter, K: np.ndarray
+    ) -> None:
         self.visualizer = visualizer
         self.ba_exporter = ba_exporter
         self.candidate_tracks = CandidateTracks()
         self.landmark_tracks = LandmarkTracks()
+        self.bundle_adjuster = BundleAdjuster(self.landmark_tracks, K)
+        self.K = K
 
         # TODO
         self.frame_id = 1
+        self.keyframes = []
 
     def run(
         self,
         images: list[np.ndarray],
         keypoints_initial: Keypoints2D,
         landmarks_initial: Landmarks3D,
-        K: np.ndarray,
         camera_positions_ground_truth: list[np.ndarray] | None = None,
     ):
         """
@@ -64,11 +69,13 @@ class VOPipeline:
             frame_id=0, landmarks=landmarks_initial, observations=keypoints_initial
         )
 
-        camera_positions, reprojection_errors = self.process_frames(images, K)
+        camera_positions, reprojection_errors = self.process_frames(images, self.K)
 
         logger.info("Finished running VO pipeline")
 
-        self.ba_exporter.write(self.landmark_tracks, f=(K[0][0] + K[1][1]) / 2.0)
+        self.ba_exporter.write(
+            self.landmark_tracks, f=(self.K[0][0] + self.K[1][1]) / 2.0
+        )
 
         self.visualizer.trajectory(camera_positions, camera_positions_ground_truth)
         self.visualizer.reprojection_errors(reprojection_errors)
@@ -135,8 +142,14 @@ class VOPipeline:
 
             # Map: add new landmarks
             if i % KEYFRAME_INTERVAL == 0:
+                if self.frame_id > 0:
+                    self.keyframes.append(self.frame_id)
                 self.add_new_candidate_keypoints(img_1, pose)
                 self.add_new_landmarks(pose, K)
+                if i > 0:
+                    self.bundle_adjuster.refine_poses_and_landmarks(
+                        frame_ids=self.keyframes
+                    )
             if candidate_keypoints.count > MAX_NUM_CANDIDATE_KEYPOINTS:
                 self.candidate_tracks.keep_last(MAX_NUM_CANDIDATE_KEYPOINTS)
 

@@ -59,38 +59,47 @@ def reprojection_errors(
 
 def reprojection_errors_ba(
     x,
-    all_poses: list[Pose],
-    all_landmarks: Landmarks3D,
+    num_poses: int,
+    num_landmarks: int,
+    cam_id_to_local: dict,
+    landmark_id_to_local: dict,
     observations: list,  # list of (cam_id, point_id, u_obs, v_obs)
     K: np.ndarray,
-    # num_cams: int,
-    # num_points: int,
 ):
     """
     Returns:
         np.ndarray(2*num_observations,): reprojection error for each observation
     """
     x = np.asarray(x)
+    num_cams = num_poses
+    num_points = num_landmarks
 
-    # cam_block = 6 * num_cams
-    # rts = x[:cam_block].reshape(num_cams, 6)
-    # points_3d = x[cam_block:].reshape(num_points, 3)
-    #
-    # rvecs = rts[:, :3]
-    # tvecs = rts[:, 3:]
+    cam_block = 6 * num_cams
+    rts = x[:cam_block].reshape(num_cams, 6)
+    points_3d = x[cam_block:].reshape(num_points, 3)
+
+    rvecs = rts[:, :3]
+    tvecs = rts[:, 3:]
 
     errors = []
 
+    # print(num_poses)
+    # print(num_landmarks)
+    # print(cam_id_to_local)
+    # print(landmark_id_to_local)
+    # print(observations)
     for cam_id, point_id, u_obs, v_obs in observations:
 
         # get parameters for this camera and point
-        pose = all_poses[cam_id]
-        # rvec = rvecs[cam_id]
-        # tvec = tvecs[cam_id]
-        p_W = all_landmarks.array[:, point_id].reshape(1, 1, 3)
+        rvec = rvecs[cam_id_to_local[cam_id]]
+        tvec = tvecs[cam_id_to_local[cam_id]]
+        p_W = points_3d[landmark_id_to_local[point_id]].reshape(1, 1, 3)
 
-        rvec = pose.rvec.ravel().astype(np.float64)  # shape (3,)
-        tvec = pose.tvec.ravel().astype(np.float64)  # shape (3,)
+        # R, _ = cv2.Rodrigues(rvec)  # type: ignore
+        # p_C = R @ p_W.reshape(3, 1) + tvec
+        # if p_C[2, 0] <= 1e-6:
+        #     errors.extend([1e3, 1e3])
+        #     continue
 
         # project using OpenCV (Rodrigues inside)
         uv_proj, _ = cv2.projectPoints(p_W, rvec, tvec, K, None)  # type: ignore

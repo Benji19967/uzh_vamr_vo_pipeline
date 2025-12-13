@@ -68,10 +68,11 @@ def run(
         plot_scale_drift=Plot.SCALE_DRIFT in plot,
         plot_trajectory=Plot.TRAJECTORY in plot,
     )
-    VOPipeline(visualizer=visualizer, ba_exporter=BAExporter()).run(
+    VOPipeline(
+        visualizer=visualizer, ba_exporter=BAExporter(), K=dataset_settings.k
+    ).run(
         images=images,
         keypoints_initial=keypoints,
         landmarks_initial=landmarks,
-        K=dataset_settings.k,
         camera_positions_ground_truth=camera_positions_ground_truth,
     )

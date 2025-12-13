@@ -12,7 +12,9 @@ HERE = Path(__file__).parent
 BA_DATA_FILENAME = HERE / ".." / "ba_data" / "ba_data.txt"
 
 
-def fun(x, frame_ids, all_poses, all_landmarks, all_observations, K):
+def fun(
+    x, num_poses, num_landmarks, cam_id_to_local, landmark_id_to_local, observations, K
+):
     """
     Compute residuals -- 2 for each observation (u_proj - u, v_proj - v)
 
@@ -49,34 +51,48 @@ def fun(x, frame_ids, all_poses, all_landmarks, all_observations, K):
             Pn_Z,
         ]
     """
-    frame_ids_set = set(frame_ids)
-    observations = [o for o in all_observations if o[0] in frame_ids_set]
-    return reprojection_errors_ba(x, all_poses, all_landmarks, observations, K)
+    reproj_errors = reprojection_errors_ba(
+        x,
+        num_poses,
+        num_landmarks,
+        cam_id_to_local,
+        landmark_id_to_local,
+        observations,
+        K,
+    )
+    print("REPRJ")
+    print(reproj_errors)
+    return reproj_errors
 
 
 class BundleAdjuster:
-    def __init__(self, landmark_tracks: LandmarkTracks) -> None:
+    def __init__(self, landmark_tracks: LandmarkTracks, K: np.ndarray) -> None:
         self._landmark_tracks = landmark_tracks
+        self._K = K
 
-    def refine_poses_and_landmarks(
-        self,
-        frame_ids: list[int],
-        K: np.ndarray,
-    ):
-        landmarks, poses = self._get_optimized_poses_and_landmarks(frame_ids, K)
+    def refine_poses_and_landmarks(self, frame_ids: list[int]) -> None:
+        landmarks, poses = self._get_optimized_poses_and_landmarks(frame_ids)
+        (_, visible_landmark_indexes) = self._landmark_tracks.get_visible_landmarks(
+            frame_ids
+        )
         self._landmark_tracks.set_poses_by_ids(poses, frame_ids)
-        self._landmark_tracks.set_landmarks_by_ids(landmarks, frame_ids)
+        self._landmark_tracks.set_landmarks_by_ids(
+            landmarks, visible_landmark_indexes.tolist()
+        )
 
     def _get_optimized_poses_and_landmarks(
-        self,
-        frame_ids: list[int],
-        K: np.ndarray,
+        self, frame_ids: list[int]
     ) -> tuple[Landmarks3D, list[Pose]]:
-        frame_ids_mask = np.array(frame_ids)
         poses_to_optimize = self._landmark_tracks.get_poses_by_ids(ids=frame_ids)
-        landmarks_to_optimize = self._landmark_tracks.get_active_landmarks().filtered(
-            frame_ids_mask
-        )
+        (
+            landmarks_to_optimize,
+            visible_landmark_indexes,
+        ) = self._landmark_tracks.get_visible_landmarks(frame_ids)
+
+        cam_id_to_local = {cid: i for i, cid in enumerate(frame_ids)}
+        landmark_id_to_local = {
+            pid: i for i, pid in enumerate(visible_landmark_indexes.tolist())
+        }
 
         x0 = np.array(
             [[pose.rvec.flatten(), pose.tvec.flatten()] for pose in poses_to_optimize]
@@ -87,12 +103,14 @@ class BundleAdjuster:
             fun,
             x0,
             method="trf",
+            loss="soft_l1",
             args=(
-                frame_ids,
-                self._landmark_tracks._poses,
-                self._landmark_tracks._landmarks,
-                self._landmark_tracks.get_observations(),
-                K,
+                len(poses_to_optimize),
+                landmarks_to_optimize.count,
+                cam_id_to_local,
+                landmark_id_to_local,
+                self._landmark_tracks.get_observations(frame_ids=frame_ids),
+                self._K,
             ),
         )
         optimized_x = res.x

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Iterable
 
 import numpy as np
 
@@ -70,9 +71,33 @@ class LandmarkTracks:
         for pose, id in zip(poses, ids):
             self._poses[id] = pose
 
-    def get_observations(self) -> list[tuple[int, int, int, int]]:
+    def get_visible_landmarks(
+        self, frame_ids: list[int]
+    ) -> tuple[Landmarks3D, np.ndarray]:
+        """
+        Returns:
+            - landmarks
+            - visible_landmarks: np.ndarray(N, ): visible landmarks indexes
+        """
+        visible_landmarks = self._observations_landmark_indexes[frame_ids[0]]
+        for frame_id in frame_ids[1:]:
+            visible_landmarks = np.concatenate(
+                (visible_landmarks, self._observations_landmark_indexes[frame_id])
+            )
+        visible_landmarks = np.unique(visible_landmarks)  # elements are sorted
+        return (
+            Landmarks3D(self._landmarks.array[:, visible_landmarks]),
+            visible_landmarks,
+        )
+
+    def get_observations(
+        self, frame_ids: Iterable[int] | None = None
+    ) -> list[tuple[int, int, int, int]]:
+        frame_ids_set = None if not frame_ids else set(frame_ids)
         obs = []
         for frame_id in self._observations:
+            if frame_ids_set and frame_id not in frame_ids_set:
+                continue
             observations = self._observations[frame_id]
             visible_landmarks = self._observations_landmark_indexes[frame_id]
             for uv, landmark_idx in zip(observations.array.T, visible_landmarks):
