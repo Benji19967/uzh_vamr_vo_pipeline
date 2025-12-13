@@ -56,6 +56,17 @@ p_W_hom = np.ndarray(
 2. Use 4 degrees instead of 5 degrees as the min angle to triangulate. 
 
 
+## Bundle Adjustment
+
+It's not easy to test. Maybe the best idea would be the following: 
+
+- Download an example BAL file from the website
+- Run a solver on it (example Ceres) to have a reference solution
+- Load the data / file into LandmarksTracks
+- Run my own BundleAdjuster on it and compare with the reference solution
+  - Cannot just compare points -- since it's high dimensional there are plenty of local minima
+  - Are the reprojection errors / "cost" similar?
+
 ## Demo (takes a few seconds to load)
 
 - There is __scale drift__ because this is a monocular setup. 
