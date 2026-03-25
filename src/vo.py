@@ -71,7 +71,10 @@ class VOPipeline:
 
         logger.info("Finished running VO pipeline")
 
-        self.ba_exporter.write(self.landmark_tracks, f=(K[0][0] + K[1][1]) / 2.0)
+        # self.ba_exporter.write(self.landmark_tracks, f=(K[0][0] + K[1][1]) / 2.0, k1=K[0][2], k2=K[1][2])
+        self.ba_exporter.write(
+            self.landmark_tracks, f=(K[0][0] + K[1][1]) / 2.0, k1=0, k2=0
+        )
 
         self.visualizer.trajectory(camera_positions, camera_positions_ground_truth)
         self.visualizer.reprojection_errors(reprojection_errors)

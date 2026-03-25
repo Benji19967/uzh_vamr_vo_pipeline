@@ -5,7 +5,7 @@ import typer
 
 from src.config import settings
 from src.enums import Dataset, Plot
-from src.initialize import initialize
+from src.initialize import initialize, initialize_cv2
 from src.io.ba_exporter import BAExporter
 from src.plotting.visualizer import Visualizer
 from src.utils.data_reader import KittiDataReader, MalagaDataReader, ParkingDataReader
@@ -52,7 +52,7 @@ def run(
 
     image_0 = DataReader.read_image(id=0)
     image_1 = DataReader.read_image(id=dataset_settings.initialization_second_image_id)
-    _, keypoints1, landmarks = initialize(image_0, image_1, K=dataset_settings.k)
+    _, keypoints1, landmarks = initialize_cv2(image_0, image_1, K=dataset_settings.k)
 
     plot_trajectory = Plot.TRAJECTORY in plot
     plot_scale_drift = Plot.SCALE_DRIFT in plot

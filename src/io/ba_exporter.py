@@ -29,7 +29,7 @@ class BAExporter:
     """
 
     def write(
-        self, landmark_tracks: LandmarkTracks, f: float, k1: float = 0, k2: float = 0
+        self, landmark_tracks: LandmarkTracks, f: float, k1: float, k2: float
     ) -> None:
         poses = landmark_tracks._poses
         points = landmark_tracks._landmarks
