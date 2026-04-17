@@ -1,4 +1,34 @@
-# Visual Odometry Pipeline for the course VAMR at UZH
+# Visual Odometry Pipeline 
+
+Built a visual odometry pipeline for the course [Vision Algorithms for Mobile Robotics](https://rpg.ifi.uzh.ch/teaching.html#VAMR) at UZH / ETHZ.
+
+
+![Preview VO](assets/03/preview_keypoints_landmarks.png)
+
+## Folder Structure
+
+    .
+    │
+    ├── assets                  # Results for major improvements
+    │
+    ├── ba_data                 # Points to use for bundle adjustment (BA)
+    │
+    ├── cli
+    │   └── vo.py               # Main entrypoint of the VO pipeline
+    │
+    ├── src
+    │   ├── features            # Finding features in images (Shi-Tomasi)
+    │   ├── io                  # Export points to format used in BA
+    │   ├── localization        # Pose estimation and RANSAC
+    │   ├── mapping             # Structure from motion and triangulation
+    │   ├── structures          # Data containers
+    │   ├── tracking            # KLT (Lucas-Kanade Tracker)
+    │   ├── transformations     # World-to-camera, camera-to-pixel
+    │   └── utils               # Reading images, masks for points, etc.
+    │
+    ├── tests                   # Lots of unit tests
+    │
+    └── README.md
 
 ## Getting started
 
@@ -15,6 +45,15 @@
 vo --help
 vo run --dataset parking
 ```
+
+## Demo 
+
+Might take a few seconds to load.
+
+- There is __scale drift__ because this is a monocular setup. 
+- Demo of version `0`
+
+![Parking VO](assets/00/parking_00.gif)
 
 ## Conventions
 
@@ -40,6 +79,16 @@ p_W_hom = np.ndarray(
 )
 ```
 
+
+## Evaluation
+
+- Evaluation of version "3": there is less scale drift. 
+
+![Camera Trajectory](assets/03/camera_trajectory.png)
+
+![Reprojection Error](assets/03/reprojection_error.png)
+
+![Scale Drift](assets/03/scale_drift.png)
 ## Notable progress
 
 ### Version 0
@@ -62,20 +111,3 @@ p_W_hom = np.ndarray(
 ### Version 3
 
 1. Use 6.0 pixels as a filter in PNP RANSAC rather than 8.0 
-
-## Demo (takes a few seconds to load)
-
-- There is __scale drift__ because this is a monocular setup. 
-- Demo of version "0"
-
-![Parking VO](assets/00/parking_00.gif)
-
-## Evaluation
-
-- Evaluation of version "3": there is less scale drift. 
-
-![Camera Trajectory](assets/03/camera_trajectory.png)
-
-![Reprojection Error](assets/03/reprojection_error.png)
-
-![Scale Drift](assets/03/scale_drift.png)

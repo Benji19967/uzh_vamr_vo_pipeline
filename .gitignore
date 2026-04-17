@@ -1,6 +1,7 @@
 # Poetry
 .poetry_venv/
 env
+**/.DS_Store
 
 # Data
 data/
